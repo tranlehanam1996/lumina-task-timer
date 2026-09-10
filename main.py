@@ -1,11 +1,18 @@
 import tkinter as tk
 from tkinter import messagebox
+import platform
+
+# Conditional import for sound to maintain cross-platform compatibility
+if platform.system() == "Windows":
+    import winsound
+else:
+    winsound = None
 
 class LuminaTimer:
     def __init__(self, root):
         self.root = root
         self.root.title("Lumina Task Timer")
-        self.root.geometry("350x500")
+        self.root.geometry("350x550")
         self.root.configure(bg="#2c3e50")
 
         self.work_time = 25 * 60
@@ -13,6 +20,7 @@ class LuminaTimer:
         self.current_time = self.work_time
         self.is_running = False
         self.is_work_session = True
+        self.sessions_completed = 0
 
         self.setup_ui()
 
@@ -28,6 +36,12 @@ class LuminaTimer:
             bg="#2c3e50", fg="#e74c3c"
         )
         self.label_timer.pack(pady=20)
+
+        self.label_sessions = tk.Label(
+            self.root, text="Sessions Completed: 0", font=("Helvetica", 12),
+            bg="#2c3e50", fg="#bdc3c7"
+        )
+        self.label_sessions.pack(pady=10)
 
         # Settings Frame
         settings_frame = tk.Frame(self.root, bg="#2c3e50")
@@ -102,6 +116,13 @@ class LuminaTimer:
             else:
                 self.handle_session_complete()
 
+    def play_notification_sound(self):
+        if winsound:
+            try:
+                winsound.Beep(1000, 500)
+            except Exception:
+                pass
+
     def handle_session_complete(self):
         self.is_running = False
         self.is_work_session = not self.is_work_session
@@ -112,6 +133,8 @@ class LuminaTimer:
             self.label_timer.config(fg="#e74c3c")
             msg = "Break over! Time to focus."
         else:
+            self.sessions_completed += 1
+            self.label_sessions.config(text=f"Sessions Completed: {self.sessions_completed}")
             self.current_time = self.break_time
             self.label_status.config(text="Break Time")
             self.label_timer.config(fg="#3498db")
@@ -121,6 +144,7 @@ class LuminaTimer:
         self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
         self.btn_start.config(text="Start", bg="#27ae60")
         
+        self.play_notification_sound()
         messagebox.showinfo("Timer", msg)
 
 if __name__ == "__main__":
