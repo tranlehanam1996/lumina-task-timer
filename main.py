@@ -12,7 +12,16 @@ class LuminaTimer:
     def __init__(self, root):
         self.root = root
         self.root.title("Lumina Task Timer")
-        self.root.geometry("350x550")
+        
+        # Window dimensions and centering
+        window_width = 350
+        window_height = 550
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        center_x = int(screen_width/2 - window_width / 2)
+        center_y = int(screen_height/2 - window_height / 2)
+        
+        self.root.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         self.root.configure(bg="#2c3e50")
 
         self.work_time = 25 * 60
@@ -80,13 +89,28 @@ class LuminaTimer:
 
     def apply_settings(self):
         try:
-            self.work_time = int(self.work_entry.get()) * 60
-            self.break_time = int(self.break_entry.get()) * 60
+            new_work = int(self.work_entry.get()) * 60
+            new_break = int(self.break_entry.get()) * 60
+            
+            if new_work <= 0 or new_break <= 0:
+                raise ValueError("Time must be positive")
+
+            self.work_time = new_work
+            self.break_time = new_break
+            
             if not self.is_running:
-                self.reset_timer()
+                # Update current timer display immediately if not running
+                if self.is_work_session:
+                    self.current_time = self.work_time
+                else:
+                    self.current_time = self.break_time
+                
+                mins, secs = divmod(self.current_time, 60)
+                self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
+            
             messagebox.showinfo("Settings", "Timer durations updated!")
         except ValueError:
-            messagebox.showerror("Error", "Please enter valid numbers for minutes.")
+            messagebox.showerror("Error", "Please enter valid positive numbers for minutes.")
 
     def toggle_timer(self):
         if self.is_running:
