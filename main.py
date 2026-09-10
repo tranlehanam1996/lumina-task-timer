@@ -5,7 +5,7 @@ class LuminaTimer:
     def __init__(self, root):
         self.root = root
         self.root.title("Lumina Task Timer")
-        self.root.geometry("300x400")
+        self.root.geometry("350x500")
         self.root.configure(bg="#2c3e50")
 
         self.work_time = 25 * 60
@@ -27,7 +27,28 @@ class LuminaTimer:
             self.root, text="25:00", font=("Helvetica", 48),
             bg="#2c3e50", fg="#e74c3c"
         )
-        self.label_timer.pack(pady=30)
+        self.label_timer.pack(pady=20)
+
+        # Settings Frame
+        settings_frame = tk.Frame(self.root, bg="#2c3e50")
+        settings_frame.pack(pady=20)
+
+        tk.Label(settings_frame, text="Work (min):", bg="#2c3e50", fg="#ecf0f1").grid(row=0, column=0, padx=5)
+        self.work_entry = tk.Entry(settings_frame, width=5)
+        self.work_entry.insert(0, "25")
+        self.work_entry.grid(row=0, column=1, padx=5)
+
+        tk.Label(settings_frame, text="Break (min):", bg="#2c3e50", fg="#ecf0f1").grid(row=1, column=0, padx=5)
+        self.break_entry = tk.Entry(settings_frame, width=5)
+        self.break_entry.insert(0, "5")
+        self.break_entry.grid(row=1, column=1, padx=5)
+
+        self.btn_apply = tk.Button(
+            self.root, text="Apply Settings", command=self.apply_settings,
+            font=("Helvetica", 10), bg="#95a5a6", fg="white",
+            relief="flat"
+        )
+        self.btn_apply.pack(pady=5)
 
         self.btn_start = tk.Button(
             self.root, text="Start", command=self.toggle_timer,
@@ -42,6 +63,16 @@ class LuminaTimer:
             width=10, relief="flat"
         )
         self.btn_reset.pack(pady=10)
+
+    def apply_settings(self):
+        try:
+            self.work_time = int(self.work_entry.get()) * 60
+            self.break_time = int(self.break_entry.get()) * 60
+            if not self.is_running:
+                self.reset_timer()
+            messagebox.showinfo("Settings", "Timer durations updated!")
+        except ValueError:
+            messagebox.showerror("Error", "Please enter valid numbers for minutes.")
 
     def toggle_timer(self):
         if self.is_running:
@@ -58,7 +89,8 @@ class LuminaTimer:
         self.current_time = self.work_time
         self.btn_start.config(text="Start", bg="#27ae60")
         self.label_status.config(text="Work Session")
-        self.label_timer.config(text="25:00")
+        mins, secs = divmod(self.current_time, 60)
+        self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
 
     def tick(self):
         if self.is_running:
