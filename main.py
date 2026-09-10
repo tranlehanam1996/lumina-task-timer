@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 import platform
+import datetime
+import os
 
 # Conditional import for sound to maintain cross-platform compatibility
 if platform.system() == "Windows":
@@ -15,7 +17,7 @@ class LuminaTimer:
         
         # Window dimensions and centering
         window_width = 350
-        window_height = 650
+        window_height = 700
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         center_x = int(screen_width/2 - window_width / 2)
@@ -30,6 +32,7 @@ class LuminaTimer:
         self.is_running = False
         self.is_work_session = True
         self.sessions_completed = 0
+        self.log_file = "session_logs.txt"
 
         self.setup_ui()
 
@@ -99,6 +102,13 @@ class LuminaTimer:
             width=10, relief="flat"
         )
         self.btn_reset.pack(pady=10)
+
+        self.btn_logs = tk.Button(
+            self.root, text="View Logs", command=self.view_logs,
+            font=("Helvetica", 10), bg="#34495e", fg="#bdc3c7",
+            relief="flat"
+        )
+        self.btn_logs.pack(pady=10)
 
     def update_progress(self):
         total = self.work_time if self.is_work_session else self.break_time
@@ -173,6 +183,35 @@ class LuminaTimer:
             except Exception:
                 pass
 
+    def log_session(self):
+        task = self.task_entry.get()
+        if task == "Focus on a task..." or not task.strip():
+            task = "Unnamed Task"
+        
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+        duration = self.work_time // 60
+        
+        with open(self.log_file, "a") as f:
+            f.write(f"[{timestamp}] Task: {task} | Duration: {duration} min\n")
+
+    def view_logs(self):
+        if not os.path.exists(self.log_file):
+            messagebox.showinfo("Logs", "No session logs found yet!")
+            return
+
+        logs_window = tk.Toplevel(self.root)
+        logs_window.title("Session History")
+        logs_window.geometry("400x300")
+        logs_window.configure(bg="#2c3e50")
+
+        text_area = tk.Text(logs_window, wrap="word", bg="#34495e", fg="#ecf0f1", font=("Helvetica", 10))
+        text_area.pack(padx=10, pady=10, expand=True, fill="both")
+
+        with open(self.log_file, "r") as f:
+            text_area.insert(tk.END, f.read())
+        
+        text_area.config(state=tk.DISABLED)
+
     def handle_session_complete(self):
         self.is_running = False
         self.is_work_session = not self.is_work_session
@@ -184,6 +223,7 @@ class LuminaTimer:
             msg = "Break over! Time to focus."
         else:
             self.sessions_completed += 1
+            self.log_session()
             self.label_sessions.config(text=f"Sessions Completed: {self.sessions_completed}")
             self.current_time = self.break_time
             self.label_status.config(text="Break Time")
