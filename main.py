@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
 import platform
 
 # Conditional import for sound to maintain cross-platform compatibility
@@ -15,7 +15,7 @@ class LuminaTimer:
         
         # Window dimensions and centering
         window_width = 350
-        window_height = 600
+        window_height = 650
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         center_x = int(screen_width/2 - window_width / 2)
@@ -52,7 +52,12 @@ class LuminaTimer:
             self.root, text="25:00", font=("Helvetica", 48),
             bg="#2c3e50", fg="#e74c3c"
         )
-        self.label_timer.pack(pady=20)
+        self.label_timer.pack(pady=10)
+
+        # Progress Bar
+        self.progress = ttk.Progressbar(self.root, orient="horizontal", length=250, mode="determinate")
+        self.progress.pack(pady=10)
+        self.update_progress()
 
         self.label_sessions = tk.Label(
             self.root, text="Sessions Completed: 0", font=("Helvetica", 12),
@@ -95,6 +100,13 @@ class LuminaTimer:
         )
         self.btn_reset.pack(pady=10)
 
+    def update_progress(self):
+        total = self.work_time if self.is_work_session else self.break_time
+        # Progress bar represents time elapsed
+        elapsed = total - self.current_time
+        percentage = (elapsed / total) * 100 if total > 0 else 0
+        self.progress['value'] = percentage
+
     def apply_settings(self):
         try:
             new_work = int(self.work_entry.get()) * 60
@@ -115,6 +127,7 @@ class LuminaTimer:
                 
                 mins, secs = divmod(self.current_time, 60)
                 self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
+                self.update_progress()
             
             messagebox.showinfo("Settings", "Timer durations updated!")
         except ValueError:
@@ -137,13 +150,18 @@ class LuminaTimer:
         self.label_status.config(text="Work Session")
         mins, secs = divmod(self.current_time, 60)
         self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
+        self.update_progress()
+        self.root.title("Lumina Task Timer")
 
     def tick(self):
         if self.is_running:
             if self.current_time > 0:
                 self.current_time -= 1
                 mins, secs = divmod(self.current_time, 60)
-                self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
+                time_str = f"{mins:02d}:{secs:02d}"
+                self.label_timer.config(text=time_str)
+                self.root.title(f"Lumina - {time_str}")
+                self.update_progress()
                 self.root.after(1000, self.tick)
             else:
                 self.handle_session_complete()
@@ -174,7 +192,9 @@ class LuminaTimer:
 
         mins, secs = divmod(self.current_time, 60)
         self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
+        self.update_progress()
         self.btn_start.config(text="Start", bg="#27ae60")
+        self.root.title("Lumina Task Timer")
         
         self.play_notification_sound()
         messagebox.showinfo("Timer", msg)
