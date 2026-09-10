@@ -33,6 +33,7 @@ class LuminaTimer:
         self.is_work_session = True
         self.sessions_completed = 0
         self.log_file = "session_logs.txt"
+        self.placeholder_text = "Focus on a task..."
 
         self.setup_ui()
 
@@ -47,9 +48,18 @@ class LuminaTimer:
         task_frame = tk.Frame(self.root, bg="#2c3e50")
         task_frame.pack(pady=10)
         tk.Label(task_frame, text="Current Task:", bg="#2c3e50", fg="#bdc3c7", font=("Helvetica", 10)).pack()
+        
         self.task_entry = tk.Entry(task_frame, width=30, justify='center', font=("Helvetica", 12))
-        self.task_entry.insert(0, "Focus on a task...")
+        self.task_entry.insert(0, self.placeholder_text)
+        self.task_entry.bind("<FocusIn>", self.clear_placeholder)
         self.task_entry.pack(pady=5)
+
+        self.btn_clear_task = tk.Button(
+            task_frame, text="Clear Task", command=self.clear_task,
+            font=("Helvetica", 8), bg="#34495e", fg="#bdc3c7",
+            relief="flat"
+        )
+        self.btn_clear_task.pack(pady=2)
 
         self.label_timer = tk.Label(
             self.root, text="25:00", font=("Helvetica", 48),
@@ -109,6 +119,14 @@ class LuminaTimer:
             relief="flat"
         )
         self.btn_logs.pack(pady=10)
+
+    def clear_placeholder(self, event):
+        if self.task_entry.get() == self.placeholder_text:
+            self.task_entry.delete(0, tk.END)
+
+    def clear_task(self):
+        self.task_entry.delete(0, tk.END)
+        self.task_entry.insert(0, self.placeholder_text)
 
     def update_progress(self):
         total = self.work_time if self.is_work_session else self.break_time
@@ -185,7 +203,7 @@ class LuminaTimer:
 
     def log_session(self):
         task = self.task_entry.get()
-        if task == "Focus on a task..." or not task.strip():
+        if task == self.placeholder_text or not task.strip():
             task = "Unnamed Task"
         
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
