@@ -15,7 +15,7 @@ class LuminaTimer:
         
         # Window dimensions and centering
         window_width = 350
-        window_height = 550
+        window_height = 600
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         center_x = int(screen_width/2 - window_width / 2)
@@ -39,6 +39,14 @@ class LuminaTimer:
             bg="#2c3e50", fg="#ecf0f1"
         )
         self.label_status.pack(pady=20)
+
+        # Task Input
+        task_frame = tk.Frame(self.root, bg="#2c3e50")
+        task_frame.pack(pady=10)
+        tk.Label(task_frame, text="Current Task:", bg="#2c3e50", fg="#bdc3c7", font=("Helvetica", 10)).pack()
+        self.task_entry = tk.Entry(task_frame, width=30, justify='center', font=("Helvetica", 12))
+        self.task_entry.insert(0, "Focus on a task...")
+        self.task_entry.pack(pady=5)
 
         self.label_timer = tk.Label(
             self.root, text="25:00", font=("Helvetica", 48),
