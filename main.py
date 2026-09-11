@@ -3,6 +3,7 @@ from tkinter import messagebox, ttk
 import platform
 import datetime
 import os
+import json
 
 # Conditional import for sound to maintain cross-platform compatibility
 if platform.system() == "Windows":
@@ -49,20 +50,52 @@ class LuminaTimer:
         self.root.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
         self.root.configure(bg=self.themes[self.current_theme]["bg"])
 
-        self.work_time = 25 * 60
-        self.break_time = 5 * 60
-        self.long_break_time = 15 * 60
+        self.log_file = "session_logs.txt"
+        self.config_file = "settings.json"
+        self.placeholder_text = "Focus on a task..."
+        
+        # Load settings from file or use defaults
+        self.load_settings()
+
         self.current_time = self.work_time
         self.is_running = False
         self.is_work_session = True
         self.sessions_completed = 0
-        self.log_file = "session_logs.txt"
-        self.placeholder_text = "Focus on a task..."
 
         self.setup_ui()
         
         # Bind Enter key to toggle timer
         self.root.bind('<Return>', lambda event: self.toggle_timer())
+
+    def load_settings(self):
+        defaults = {
+            "work_time": 25 * 60,
+            "break_time": 5 * 60,
+            "long_break_time": 15 * 60
+        }
+        if os.path.exists(self.config_file):
+            try:
+                with open(self.config_file, "r") as f:
+                    settings = json.load(f)
+                    self.work_time = settings.get("work_time", defaults["work_time"])
+                    self.break_time = settings.get("break_time", defaults["break_time"])
+                    self.long_break_time = settings.get("long_break_time", defaults["long_break_time"])
+            except (json.JSONDecodeError, IOError):
+                self.work_time, self.break_time, self.long_break_time = defaults.values()
+        else:
+            self.work_time, self.break_time, self.long_break_time = defaults.values()
+
+    def save_settings(self):
+        try:
+            settings = {
+                "work_time": self.work_time,
+                "break_time": self.break_time,
+                "long_break_time": self.long_break_time
+            }
+            with open(self.config_file, "w") as f:
+                json.dump(settings, f)
+        except IOError:
+            pass
 
     def setup_ui(self):
         theme = self.themes[self.current_theme]
@@ -119,19 +152,19 @@ class LuminaTimer:
         self.set_work_label = tk.Label(self.settings_frame, text="Work (min):", bg=theme["bg"], fg=theme["fg"])
         self.set_work_label.grid(row=0, column=0, padx=5)
         self.work_entry = tk.Entry(self.settings_frame, width=5)
-        self.work_entry.insert(0, "25")
+        self.work_entry.insert(0, str(self.work_time // 60))
         self.work_entry.grid(row=0, column=1, padx=5)
 
         self.set_break_label = tk.Label(self.settings_frame, text="Break (min):", bg=theme["bg"], fg=theme["fg"])
         self.set_break_label.grid(row=1, column=0, padx=5)
         self.break_entry = tk.Entry(self.settings_frame, width=5)
-        self.break_entry.insert(0, "5")
+        self.break_entry.insert(0, str(self.break_time // 60))
         self.break_entry.grid(row=1, column=1, padx=5)
 
         self.set_long_label = tk.Label(self.settings_frame, text="Long Break (min):", bg=theme["bg"], fg=theme["fg"])
         self.set_long_label.grid(row=2, column=0, padx=5)
         self.long_break_entry = tk.Entry(self.settings_frame, width=5)
-        self.long_break_entry.insert(0, "15")
+        self.long_break_entry.insert(0, str(self.long_break_time // 60))
         self.long_break_entry.grid(row=2, column=1, padx=5)
 
         self.btn_apply = tk.Button(
@@ -225,6 +258,7 @@ class LuminaTimer:
             self.work_time = new_work
             self.break_time = new_break
             self.long_break_time = new_long_break
+            self.save_settings()
             
             if not self.is_running:
                 # Update current timer display immediately if not running
