@@ -56,6 +56,9 @@ class LuminaTimer:
         self.placeholder_text = "Focus on a task..."
 
         self.setup_ui()
+        
+        # Bind Enter key to toggle timer
+        self.root.bind('<Return>', lambda event: self.toggle_timer())
 
     def setup_ui(self):
         theme = self.themes[self.current_theme]
