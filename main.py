@@ -28,6 +28,7 @@ class LuminaTimer:
 
         self.work_time = 25 * 60
         self.break_time = 5 * 60
+        self.long_break_time = 15 * 60
         self.current_time = self.work_time
         self.is_running = False
         self.is_work_session = True
@@ -92,6 +93,11 @@ class LuminaTimer:
         self.break_entry.insert(0, "5")
         self.break_entry.grid(row=1, column=1, padx=5)
 
+        tk.Label(settings_frame, text="Long Break (min):", bg="#2c3e50", fg="#ecf0f1").grid(row=2, column=0, padx=5)
+        self.long_break_entry = tk.Entry(settings_frame, width=5)
+        self.long_break_entry.insert(0, "15")
+        self.long_break_entry.grid(row=2, column=1, padx=5)
+
         self.btn_apply = tk.Button(
             self.root, text="Apply Settings", command=self.apply_settings,
             font=("Helvetica", 10), bg="#95a5a6", fg="white",
@@ -129,7 +135,7 @@ class LuminaTimer:
         self.task_entry.insert(0, self.placeholder_text)
 
     def update_progress(self):
-        total = self.work_time if self.is_work_session else self.break_time
+        total = self.work_time if self.is_work_session else (self.long_break_time if self.sessions_completed % 4 == 0 and self.sessions_completed > 0 else self.break_time)
         # Progress bar represents time elapsed
         elapsed = total - self.current_time
         percentage = (elapsed / total) * 100 if total > 0 else 0
@@ -139,19 +145,21 @@ class LuminaTimer:
         try:
             new_work = int(self.work_entry.get()) * 60
             new_break = int(self.break_entry.get()) * 60
+            new_long_break = int(self.long_break_entry.get()) * 60
             
-            if new_work <= 0 or new_break <= 0:
+            if new_work <= 0 or new_break <= 0 or new_long_break <= 0:
                 raise ValueError("Time must be positive")
 
             self.work_time = new_work
             self.break_time = new_break
+            self.long_break_time = new_long_break
             
             if not self.is_running:
                 # Update current timer display immediately if not running
                 if self.is_work_session:
                     self.current_time = self.work_time
                 else:
-                    self.current_time = self.break_time
+                    self.current_time = self.long_break_time if self.sessions_completed % 4 == 0 and self.sessions_completed > 0 else self.break_time
                 
                 mins, secs = divmod(self.current_time, 60)
                 self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
@@ -243,10 +251,17 @@ class LuminaTimer:
             self.sessions_completed += 1
             self.log_session()
             self.label_sessions.config(text=f"Sessions Completed: {self.sessions_completed}")
-            self.current_time = self.break_time
-            self.label_status.config(text="Break Time")
-            self.label_timer.config(fg="#3498db")
-            msg = "Work session complete! Take a break."
+            
+            if self.sessions_completed % 4 == 0:
+                self.current_time = self.long_break_time
+                self.label_status.config(text="Long Break Time")
+                self.label_timer.config(fg="#9b59b6")
+                msg = "Great progress! Take a long break."
+            else:
+                self.current_time = self.break_time
+                self.label_status.config(text="Break Time")
+                self.label_timer.config(fg="#3498db")
+                msg = "Work session complete! Take a break."
 
         mins, secs = divmod(self.current_time, 60)
         self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
