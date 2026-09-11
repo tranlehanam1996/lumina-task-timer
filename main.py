@@ -22,14 +22,18 @@ class LuminaTimer:
                 "fg": "#ecf0f1",
                 "accent": "#34495e",
                 "text_muted": "#bdc3c7",
-                "timer_color": "#e74c3c"
+                "timer_color": "#e74c3c",
+                "break_color": "#3498db",
+                "long_break_color": "#9b59b6"
             },
             "light": {
                 "bg": "#f5f6fa",
                 "fg": "#2f3640",
                 "accent": "#dcdde1",
                 "text_muted": "#7f8c8d",
-                "timer_color": "#c0392b"
+                "timer_color": "#c0392b",
+                "break_color": "#2980b9",
+                "long_break_color": "#8e44ad"
             }
         }
         self.current_theme = "dark"
@@ -185,9 +189,14 @@ class LuminaTimer:
         self.btn_theme.config(bg=theme["accent"], fg=theme["text_muted"], 
                             text="Switch to Dark Mode" if self.current_theme == "light" else "Switch to Light Mode")
         
-        # Update timer color if not in a break state
+        # Update timer color based on current state
         if self.is_work_session:
             self.label_timer.config(fg=theme["timer_color"])
+        else:
+            if self.sessions_completed % 4 == 0 and self.sessions_completed > 0:
+                self.label_timer.config(fg=theme["long_break_color"])
+            else:
+                self.label_timer.config(fg=theme["break_color"])
 
     def clear_placeholder(self, event):
         if self.task_entry.get() == self.placeholder_text:
@@ -321,12 +330,12 @@ class LuminaTimer:
             if self.sessions_completed % 4 == 0:
                 self.current_time = self.long_break_time
                 self.label_status.config(text="Long Break Time")
-                self.label_timer.config(fg="#9b59b6")
+                self.label_timer.config(fg=theme["long_break_color"])
                 msg = "Great progress! Take a long break."
             else:
                 self.current_time = self.break_time
                 self.label_status.config(text="Break Time")
-                self.label_timer.config(fg="#3498db")
+                self.label_timer.config(fg=theme["break_color"])
                 msg = "Work session complete! Take a break."
 
         mins, secs = divmod(self.current_time, 60)
