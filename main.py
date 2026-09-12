@@ -61,6 +61,7 @@ class LuminaTimer:
         self.is_running = False
         self.is_work_session = True
         self.sessions_completed = 0
+        self.stay_on_top = False
 
         self.setup_ui()
         
@@ -72,7 +73,8 @@ class LuminaTimer:
             "work_time": 25 * 60,
             "break_time": 5 * 60,
             "long_break_time": 15 * 60,
-            "session_goal": 4
+            "session_goal": 4,
+            "stay_on_top": False
         }
         if os.path.exists(self.config_file):
             try:
@@ -82,10 +84,14 @@ class LuminaTimer:
                     self.break_time = settings.get("break_time", defaults["break_time"])
                     self.long_break_time = settings.get("long_break_time", defaults["long_break_time"])
                     self.session_goal = settings.get("session_goal", defaults["session_goal"])
+                    self.stay_on_top = settings.get("stay_on_top", defaults["stay_on_top"])
             except (json.JSONDecodeError, IOError):
-                self.work_time, self.break_time, self.long_break_time, self.session_goal = defaults.values()
+                self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top = defaults.values()
         else:
-            self.work_time, self.break_time, self.long_break_time, self.session_goal = defaults.values()
+            self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top = defaults.values()
+        
+        if self.stay_on_top:
+            self.root.attributes('-topmost', True)
 
     def save_settings(self):
         try:
@@ -93,7 +99,8 @@ class LuminaTimer:
                 "work_time": self.work_time,
                 "break_time": self.break_time,
                 "long_break_time": self.long_break_time,
-                "session_goal": self.session_goal
+                "session_goal": self.session_goal,
+                "stay_on_top": self.stay_on_top
             }
             with open(self.config_file, "w") as f:
                 json.dump(settings, f)
@@ -122,6 +129,7 @@ class LuminaTimer:
         self.task_entry = tk.Entry(self.task_frame, width=30, justify='center', font=("Helvetica", 12))
         self.task_entry.insert(0, self.placeholder_text)
         self.task_entry.bind("<FocusIn>", self.clear_placeholder)
+        self.task_entry.bind("<KeyRelease>", self.update_window_title)
         self.task_entry.pack(pady=5)
 
         self.btn_clear_task = tk.Button(
@@ -176,6 +184,15 @@ class LuminaTimer:
         self.goal_entry.insert(0, str(self.session_goal))
         self.goal_entry.grid(row=3, column=1, padx=5)
 
+        # Always on top toggle
+        self.stay_on_top_var = tk.BooleanVar(value=self.stay_on_top)
+        self.chk_topmost = tk.Checkbutton(
+            self.settings_frame, text="Always on Top", variable=self.stay_on_top_var,
+            bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"],
+            command=self.toggle_topmost, font=("Helvetica", 9)
+        )
+        self.chk_topmost.grid(row=4, column=0, columnspan=2, pady=5)
+
         self.btn_apply = tk.Button(
             self.root, text="Apply Settings", command=self.apply_settings,
             font=("Helvetica", 10), bg="#95a5a6", fg="white",
@@ -228,6 +245,7 @@ class LuminaTimer:
         self.set_break_label.config(bg=theme["bg"], fg=theme["fg"])
         self.set_long_label.config(bg=theme["bg"], fg=theme["fg"])
         self.set_goal_label.config(bg=theme["bg"], fg=theme["fg"])
+        self.chk_topmost.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
         self.btn_logs.config(bg=theme["accent"], fg=theme["text_muted"])
         self.btn_theme.config(bg=theme["accent"], fg=theme["text_muted"], 
                             text="Switch to Dark Mode" if self.current_theme == "light" else "Switch to Light Mode")
@@ -248,6 +266,24 @@ class LuminaTimer:
     def clear_task(self):
         self.task_entry.delete(0, tk.END)
         self.task_entry.insert(0, self.placeholder_text)
+        self.update_window_title()
+
+    def update_window_title(self, event=None):
+        task = self.task_entry.get()
+        if task == self.placeholder_text or not task.strip():
+            task = "Lumina Task Timer"
+        else:
+            task = f"Lumina - {task}"
+        
+        if self.is_running:
+            mins, secs = divmod(self.current_time, 60)
+            self.root.title(f"{task} ({mins:02d}:{secs:02d})")
+        else:
+            self.root.title(task)
+
+    def toggle_topmost(self):
+        self.stay_on_top = self.stay_on_top_var.get()
+        self.root.attributes('-topmost', self.stay_on_top)
 
     def update_progress(self):
         total = self.work_time if self.is_work_session else (self.long_break_time if self.sessions_completed % 4 == 0 and self.sessions_completed > 0 else self.break_time)
@@ -270,6 +306,7 @@ class LuminaTimer:
             self.break_time = new_break
             self.long_break_time = new_long_break
             self.session_goal = new_goal
+            self.stay_on_top = self.stay_on_top_var.get()
             self.save_settings()
             
             if not self.is_running:
@@ -306,7 +343,7 @@ class LuminaTimer:
         mins, secs = divmod(self.current_time, 60)
         self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
         self.update_progress()
-        self.root.title("Lumina Task Timer")
+        self.update_window_title()
 
     def tick(self):
         if self.is_running:
@@ -319,7 +356,7 @@ class LuminaTimer:
                 mins, secs = divmod(self.current_time, 60)
                 time_str = f"{mins:02d}:{secs:02d}"
                 self.label_timer.config(text=time_str)
-                self.root.title(f"Lumina - {time_str}")
+                self.update_window_title()
                 self.update_progress()
                 self.root.after(1000, self.tick)
             else:
@@ -413,7 +450,7 @@ class LuminaTimer:
         self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
         self.update_progress()
         self.btn_start.config(text="Start", bg="#27ae60")
-        self.root.title("Lumina Task Timer")
+        self.update_window_title()
         
         self.play_notification_sound()
         messagebox.showinfo("Timer", msg)
