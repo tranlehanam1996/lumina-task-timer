@@ -41,7 +41,7 @@ class LuminaTimer:
 
         # Window dimensions and centering
         window_width = 350
-        window_height = 820
+        window_height = 850
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         center_x = int(screen_width/2 - window_width / 2)
@@ -74,7 +74,8 @@ class LuminaTimer:
             "break_time": 5 * 60,
             "long_break_time": 15 * 60,
             "session_goal": 4,
-            "stay_on_top": False
+            "stay_on_top": False,
+            "auto_start": False
         }
         if os.path.exists(self.config_file):
             try:
@@ -85,10 +86,11 @@ class LuminaTimer:
                     self.long_break_time = settings.get("long_break_time", defaults["long_break_time"])
                     self.session_goal = settings.get("session_goal", defaults["session_goal"])
                     self.stay_on_top = settings.get("stay_on_top", defaults["stay_on_top"])
+                    self.auto_start = settings.get("auto_start", defaults["auto_start"])
             except (json.JSONDecodeError, IOError):
-                self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top = defaults.values()
+                self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top, self.auto_start = defaults.values()
         else:
-            self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top = defaults.values()
+            self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top, self.auto_start = defaults.values()
         
         if self.stay_on_top:
             self.root.attributes('-topmost', True)
@@ -100,7 +102,8 @@ class LuminaTimer:
                 "break_time": self.break_time,
                 "long_break_time": self.long_break_time,
                 "session_goal": self.session_goal,
-                "stay_on_top": self.stay_on_top
+                "stay_on_top": self.stay_on_top,
+                "auto_start": self.auto_start
             }
             with open(self.config_file, "w") as f:
                 json.dump(settings, f)
@@ -193,6 +196,15 @@ class LuminaTimer:
         )
         self.chk_topmost.grid(row=4, column=0, columnspan=2, pady=5)
 
+        # Auto-start toggle
+        self.auto_start_var = tk.BooleanVar(value=self.auto_start)
+        self.chk_autostart = tk.Checkbutton(
+            self.settings_frame, text="Auto-start next session", variable=self.auto_start_var,
+            bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"],
+            command=self.toggle_autostart, font=("Helvetica", 9)
+        )
+        self.chk_autostart.grid(row=5, column=0, columnspan=2, pady=5)
+
         self.btn_apply = tk.Button(
             self.root, text="Apply Settings", command=self.apply_settings,
             font=("Helvetica", 10), bg="#95a5a6", fg="white",
@@ -246,6 +258,7 @@ class LuminaTimer:
         self.set_long_label.config(bg=theme["bg"], fg=theme["fg"])
         self.set_goal_label.config(bg=theme["bg"], fg=theme["fg"])
         self.chk_topmost.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
+        self.chk_autostart.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
         self.btn_logs.config(bg=theme["accent"], fg=theme["text_muted"])
         self.btn_theme.config(bg=theme["accent"], fg=theme["text_muted"], 
                             text="Switch to Dark Mode" if self.current_theme == "light" else "Switch to Light Mode")
@@ -285,6 +298,9 @@ class LuminaTimer:
         self.stay_on_top = self.stay_on_top_var.get()
         self.root.attributes('-topmost', self.stay_on_top)
 
+    def toggle_autostart(self):
+        self.auto_start = self.auto_start_var.get()
+
     def update_progress(self):
         total = self.work_time if self.is_work_session else (self.long_break_time if self.sessions_completed % 4 == 0 and self.sessions_completed > 0 else self.break_time)
         # Progress bar represents time elapsed
@@ -307,6 +323,7 @@ class LuminaTimer:
             self.long_break_time = new_long_break
             self.session_goal = new_goal
             self.stay_on_top = self.stay_on_top_var.get()
+            self.auto_start = self.auto_start_var.get()
             self.save_settings()
             
             if not self.is_running:
@@ -425,6 +442,13 @@ class LuminaTimer:
         self.is_work_session = not self.is_work_session
         
         theme = self.themes[self.current_theme]
+        
+        # Visual feedback flash
+        original_bg = theme["bg"]
+        flash_color = "#f1c40f" if self.current_theme == "dark" else "#f39c12"
+        self.root.configure(bg=flash_color)
+        self.root.after(200, lambda: self.root.configure(bg=original_bg))
+
         if self.is_work_session:
             self.current_time = self.work_time
             self.label_status.config(text="Work Session")
@@ -454,6 +478,9 @@ class LuminaTimer:
         
         self.play_notification_sound()
         messagebox.showinfo("Timer", msg)
+        
+        if self.auto_start:
+            self.toggle_timer()
 
 if __name__ == "__main__":
     root = tk.Tk()
