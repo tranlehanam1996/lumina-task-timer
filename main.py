@@ -41,7 +41,7 @@ class LuminaTimer:
 
         # Window dimensions and centering
         window_width = 350
-        window_height = 750
+        window_height = 820
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         center_x = int(screen_width/2 - window_width / 2)
@@ -71,7 +71,8 @@ class LuminaTimer:
         defaults = {
             "work_time": 25 * 60,
             "break_time": 5 * 60,
-            "long_break_time": 15 * 60
+            "long_break_time": 15 * 60,
+            "session_goal": 4
         }
         if os.path.exists(self.config_file):
             try:
@@ -80,17 +81,19 @@ class LuminaTimer:
                     self.work_time = settings.get("work_time", defaults["work_time"])
                     self.break_time = settings.get("break_time", defaults["break_time"])
                     self.long_break_time = settings.get("long_break_time", defaults["long_break_time"])
+                    self.session_goal = settings.get("session_goal", defaults["session_goal"])
             except (json.JSONDecodeError, IOError):
-                self.work_time, self.break_time, self.long_break_time = defaults.values()
+                self.work_time, self.break_time, self.long_break_time, self.session_goal = defaults.values()
         else:
-            self.work_time, self.break_time, self.long_break_time = defaults.values()
+            self.work_time, self.break_time, self.long_break_time, self.session_goal = defaults.values()
 
     def save_settings(self):
         try:
             settings = {
                 "work_time": self.work_time,
                 "break_time": self.break_time,
-                "long_break_time": self.long_break_time
+                "long_break_time": self.long_break_time,
+                "session_goal": self.session_goal
             }
             with open(self.config_file, "w") as f:
                 json.dump(settings, f)
@@ -140,7 +143,7 @@ class LuminaTimer:
         self.update_progress()
 
         self.label_sessions = tk.Label(
-            self.root, text="Sessions Completed: 0", font=("Helvetica", 12),
+            self.root, text=f"Sessions: {self.sessions_completed}/{self.session_goal}", font=("Helvetica", 12),
             bg=theme["bg"], fg=theme["text_muted"]
         )
         self.label_sessions.pack(pady=10)
@@ -166,6 +169,12 @@ class LuminaTimer:
         self.long_break_entry = tk.Entry(self.settings_frame, width=5)
         self.long_break_entry.insert(0, str(self.long_break_time // 60))
         self.long_break_entry.grid(row=2, column=1, padx=5)
+
+        self.set_goal_label = tk.Label(self.settings_frame, text="Goal (sessions):", bg=theme["bg"], fg=theme["fg"])
+        self.set_goal_label.grid(row=3, column=0, padx=5)
+        self.goal_entry = tk.Entry(self.settings_frame, width=5)
+        self.goal_entry.insert(0, str(self.session_goal))
+        self.goal_entry.grid(row=3, column=1, padx=5)
 
         self.btn_apply = tk.Button(
             self.root, text="Apply Settings", command=self.apply_settings,
@@ -218,6 +227,7 @@ class LuminaTimer:
         self.set_work_label.config(bg=theme["bg"], fg=theme["fg"])
         self.set_break_label.config(bg=theme["bg"], fg=theme["fg"])
         self.set_long_label.config(bg=theme["bg"], fg=theme["fg"])
+        self.set_goal_label.config(bg=theme["bg"], fg=theme["fg"])
         self.btn_logs.config(bg=theme["accent"], fg=theme["text_muted"])
         self.btn_theme.config(bg=theme["accent"], fg=theme["text_muted"], 
                             text="Switch to Dark Mode" if self.current_theme == "light" else "Switch to Light Mode")
@@ -251,13 +261,15 @@ class LuminaTimer:
             new_work = int(self.work_entry.get()) * 60
             new_break = int(self.break_entry.get()) * 60
             new_long_break = int(self.long_break_entry.get()) * 60
+            new_goal = int(self.goal_entry.get())
             
-            if new_work <= 0 or new_break <= 0 or new_long_break <= 0:
-                raise ValueError("Time must be positive")
+            if new_work <= 0 or new_break <= 0 or new_long_break <= 0 or new_goal < 0:
+                raise ValueError("Time and goals must be positive")
 
             self.work_time = new_work
             self.break_time = new_break
             self.long_break_time = new_long_break
+            self.session_goal = new_goal
             self.save_settings()
             
             if not self.is_running:
@@ -271,9 +283,10 @@ class LuminaTimer:
                 self.label_timer.config(text=f"{mins:02d}:{secs:02d}")
                 self.update_progress()
             
-            messagebox.showinfo("Settings", "Timer durations updated!")
+            self.label_sessions.config(text=f"Sessions: {self.sessions_completed}/{self.session_goal}")
+            messagebox.showinfo("Settings", "Timer durations and goal updated!")
         except ValueError:
-            messagebox.showerror("Error", "Please enter valid positive numbers for minutes.")
+            messagebox.showerror("Error", "Please enter valid positive numbers.")
 
     def toggle_timer(self):
         if self.is_running:
@@ -383,7 +396,7 @@ class LuminaTimer:
         else:
             self.sessions_completed += 1
             self.log_session()
-            self.label_sessions.config(text=f"Sessions Completed: {self.sessions_completed}")
+            self.label_sessions.config(text=f"Sessions: {self.sessions_completed}/{self.session_goal}")
             
             if self.sessions_completed % 4 == 0:
                 self.current_time = self.long_break_time
