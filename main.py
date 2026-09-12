@@ -298,6 +298,10 @@ class LuminaTimer:
     def tick(self):
         if self.is_running:
             if self.current_time > 0:
+                # Countdown sounds for the last 3 seconds
+                if 0 < self.current_time <= 3:
+                    self.play_notification_sound(frequency=800, duration=100)
+                
                 self.current_time -= 1
                 mins, secs = divmod(self.current_time, 60)
                 time_str = f"{mins:02d}:{secs:02d}"
@@ -308,10 +312,10 @@ class LuminaTimer:
             else:
                 self.handle_session_complete()
 
-    def play_notification_sound(self):
+    def play_notification_sound(self, frequency=1000, duration=500):
         if winsound:
             try:
-                winsound.Beep(1000, 500)
+                winsound.Beep(frequency, duration)
             except Exception:
                 pass
 
@@ -333,7 +337,7 @@ class LuminaTimer:
 
         logs_window = tk.Toplevel(self.root)
         logs_window.title("Session History")
-        logs_window.geometry("400x300")
+        logs_window.geometry("400x350")
         
         theme = self.themes[self.current_theme]
         logs_window.configure(bg=theme["bg"])
@@ -345,6 +349,26 @@ class LuminaTimer:
             text_area.insert(tk.END, f.read())
         
         text_area.config(state=tk.DISABLED)
+
+        # Clear Logs Button
+        btn_clear_logs = tk.Button(
+            logs_window, text="Clear All Logs", 
+            command=lambda: self.clear_logs(logs_window, text_area),
+            font=("Helvetica", 9), bg="#c0392b", fg="white", relief="flat"
+        )
+        btn_clear_logs.pack(pady=10)
+
+    def clear_logs(self, window, text_area):
+        if messagebox.askyesno("Clear Logs", "Are you sure you want to delete all session logs?"):
+            try:
+                with open(self.log_file, "w") as f:
+                    f.write("")
+                text_area.config(state=tk.NORMAL)
+                text_area.delete(1.0, tk.END)
+                text_area.config(state=tk.DISABLED)
+                messagebox.showinfo("Logs", "All logs have been cleared.")
+            except IOError:
+                messagebox.showerror("Error", "Could not clear logs file.")
 
     def handle_session_complete(self):
         self.is_running = False
