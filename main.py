@@ -11,6 +11,14 @@ if platform.system() == "Windows":
 else:
     winsound = None
 
+# Try to import pystray for system tray support
+try:
+    from pystray import Icon, MenuItem as TrayMenuItem
+    import threading
+    PYSTRAY_AVAILABLE = True
+except ImportError:
+    PYSTRAY_AVAILABLE = False
+
 class LuminaTimer:
     def __init__(self, root):
         self.root = root
@@ -71,6 +79,11 @@ class LuminaTimer:
         
         # Bind Enter key to toggle timer
         self.root.bind('<Return>', lambda event: self.toggle_timer())
+
+        # Handle window closing to minimize to tray if available
+        if PYSTRAY_AVAILABLE:
+            self.root.protocol('WM_DELETE_WINDOW', self.hide_window)
+            self.setup_tray()
 
     def load_settings(self):
         defaults = {
@@ -537,6 +550,43 @@ class LuminaTimer:
         
         if self.auto_start:
             self.toggle_timer()
+
+    def hide_window(self):
+        self.root.withdraw()
+
+    def show_window(self, icon=None, item=None):
+        self.root.after(0, self.root.deiconify)
+        if icon:
+            icon.stop()
+
+    def setup_tray(self):
+        # Note: In a real app, we would provide a proper .ico or .png file
+        # For this implementation, we use a dummy image if one is not provided
+        image = None
+        try:
+            from PIL import Image, ImageDraw
+            img = Image.new('RGB', (64, 64), color=(44, 62, 80))
+            d = ImageDraw.Draw(img)
+            d.text((10, 10), "L", fill=(231, 76, 60))
+            image = img
+        except ImportError:
+            pass
+
+        menu = (
+            TrayMenuItem('Restore', self.show_window),
+            TrayMenuItem('Exit', lambda icon, item: self.exit_app(icon))
+        )
+        self.tray_icon = Icon("Lumina", image, "Lumina Task Timer", menu)
+        
+        # Run tray icon in a separate thread so it doesn't block Tkinter
+        self.tray_thread = threading.Thread(target=self.tray_icon.run, daemon=True)
+        self.tray_thread.start()
+
+    def exit_app(self, icon=None):
+        if icon:
+            icon.stop()
+        self.root.quit()
+        self.root.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
