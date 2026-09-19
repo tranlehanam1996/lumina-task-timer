@@ -40,6 +40,9 @@ class LuminaTimer:
         self.current_theme = "dark"
 
         # Window dimensions and centering
+        self.full_geometry = "350x850"
+        self.compact_geometry = "200x120"
+        
         window_width = 350
         window_height = 850
         screen_width = self.root.winfo_screenwidth()
@@ -62,6 +65,7 @@ class LuminaTimer:
         self.is_work_session = True
         self.sessions_completed = 0
         self.stay_on_top = False
+        self.focus_mode = False
 
         self.setup_ui()
         
@@ -233,6 +237,14 @@ class LuminaTimer:
         )
         self.btn_logs.pack(pady=10)
 
+        # Focus Mode Toggle
+        self.btn_focus = tk.Button(
+            self.root, text="Enter Focus Mode", command=self.toggle_focus_mode,
+            font=("Helvetica", 10), bg=theme["accent"], fg=theme["text_muted"],
+            relief="flat"
+        )
+        self.btn_focus.pack(pady=5)
+
         # Theme Toggle
         self.btn_theme = tk.Button(
             self.root, text="Switch to Light Mode", command=self.toggle_theme,
@@ -240,6 +252,52 @@ class LuminaTimer:
             relief="flat"
         )
         self.btn_theme.pack(pady=20)
+
+    def toggle_focus_mode(self):
+        self.focus_mode = not self.focus_mode
+        theme = self.themes[self.current_theme]
+        
+        if self.focus_mode:
+            self.root.geometry(self.compact_geometry)
+            self.label_status.pack_forget()
+            self.task_frame.pack_forget()
+            self.progress.pack_forget()
+            self.label_sessions.pack_forget()
+            self.settings_frame.pack_forget()
+            self.btn_apply.pack_forget()
+            self.btn_start.pack_forget()
+            self.btn_reset.pack_forget()
+            self.btn_logs.pack_forget()
+            self.btn_theme.pack_forget()
+            self.btn_focus.pack_forget()
+            
+            self.label_timer.pack(expand=True)
+            self.root.title("Lumina - Focus")
+            
+            self.exit_focus_btn = tk.Button(
+                self.root, text="Exit", command=self.toggle_focus_mode,
+                font=("Helvetica", 8), bg=theme["accent"], fg=theme["text_muted"],
+                relief="flat"
+            )
+            self.exit_focus_btn.pack(pady=5)
+        else:
+            if hasattr(self, 'exit_focus_btn'):
+                self.exit_focus_btn.destroy()
+            
+            self.root.geometry(self.full_geometry)
+            self.label_status.pack(pady=20)
+            self.task_frame.pack(pady=10)
+            self.label_timer.pack(pady=10)
+            self.progress.pack(pady=10)
+            self.label_sessions.pack(pady=10)
+            self.settings_frame.pack(pady=20)
+            self.btn_apply.pack(pady=5)
+            self.btn_start.pack(pady=10)
+            self.btn_reset.pack(pady=10)
+            self.btn_logs.pack(pady=10)
+            self.btn_focus.pack(pady=5)
+            self.btn_theme.pack(pady=20)
+            self.update_window_title()
 
     def toggle_theme(self):
         self.current_theme = "light" if self.current_theme == "dark" else "dark"
@@ -260,10 +318,13 @@ class LuminaTimer:
         self.chk_topmost.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
         self.chk_autostart.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
         self.btn_logs.config(bg=theme["accent"], fg=theme["text_muted"])
+        self.btn_focus.config(bg=theme["accent"], fg=theme["text_muted"])
         self.btn_theme.config(bg=theme["accent"], fg=theme["text_muted"], 
                             text="Switch to Dark Mode" if self.current_theme == "light" else "Switch to Light Mode")
         
-        # Update timer color based on current state
+        if hasattr(self, 'exit_focus_btn'):
+            self.exit_focus_btn.config(bg=theme["accent"], fg=theme["text_muted"])
+
         if self.is_work_session:
             self.label_timer.config(fg=theme["timer_color"])
         else:
@@ -303,7 +364,6 @@ class LuminaTimer:
 
     def update_progress(self):
         total = self.work_time if self.is_work_session else (self.long_break_time if self.sessions_completed % 4 == 0 and self.sessions_completed > 0 else self.break_time)
-        # Progress bar represents time elapsed
         elapsed = total - self.current_time
         percentage = (elapsed / total) * 100 if total > 0 else 0
         self.progress['value'] = percentage
@@ -327,7 +387,6 @@ class LuminaTimer:
             self.save_settings()
             
             if not self.is_running:
-                # Update current timer display immediately if not running
                 if self.is_work_session:
                     self.current_time = self.work_time
                 else:
@@ -365,7 +424,6 @@ class LuminaTimer:
     def tick(self):
         if self.is_running:
             if self.current_time > 0:
-                # Countdown sounds for the last 3 seconds
                 if 0 < self.current_time <= 3:
                     self.play_notification_sound(frequency=800, duration=100)
                 
@@ -417,7 +475,6 @@ class LuminaTimer:
         
         text_area.config(state=tk.DISABLED)
 
-        # Clear Logs Button
         btn_clear_logs = tk.Button(
             logs_window, text="Clear All Logs", 
             command=lambda: self.clear_logs(logs_window, text_area),
@@ -443,7 +500,6 @@ class LuminaTimer:
         
         theme = self.themes[self.current_theme]
         
-        # Visual feedback flash
         original_bg = theme["bg"]
         flash_color = "#f1c40f" if self.current_theme == "dark" else "#f39c12"
         self.root.configure(bg=flash_color)
