@@ -33,7 +33,8 @@ class LuminaTimer:
                 "text_muted": "#bdc3c7",
                 "timer_color": "#e74c3c",
                 "break_color": "#3498db",
-                "long_break_color": "#9b59b6"
+                "long_break_color": "#9b59b6",
+                "progress_bg": "#1a252f"
             },
             "light": {
                 "bg": "#f5f6fa",
@@ -42,17 +43,18 @@ class LuminaTimer:
                 "text_muted": "#7f8c8d",
                 "timer_color": "#c0392b",
                 "break_color": "#2980b9",
-                "long_break_color": "#8e44ad"
+                "long_break_color": "#8e44ad",
+                "progress_bg": "#e1e2e6"
             }
         }
         self.current_theme = "dark"
 
         # Window dimensions and centering
-        self.full_geometry = "350x850"
+        self.full_geometry = "350x900"
         self.compact_geometry = "200x120"
         
         window_width = 350
-        window_height = 850
+        window_height = 900
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         center_x = int(screen_width/2 - window_width / 2)
@@ -173,11 +175,19 @@ class LuminaTimer:
         self.progress.pack(pady=10)
         self.update_progress()
 
+        # Daily Goal Tracker
+        self.goal_frame = tk.Frame(self.root, bg=theme["bg"])
+        self.goal_frame.pack(pady=10)
         self.label_sessions = tk.Label(
-            self.root, text=f"Sessions: {self.sessions_completed}/{self.session_goal}", font=("Helvetica", 12),
+            self.goal_frame, text=f"Sessions: {self.sessions_completed}/{self.session_goal}", font=("Helvetica", 12),
             bg=theme["bg"], fg=theme["text_muted"]
         )
-        self.label_sessions.pack(pady=10)
+        self.label_sessions.pack()
+        
+        self.goal_canvas = tk.Canvas(self.goal_frame, width=200, height=10, bg=theme["progress_bg"], highlightthickness=0)
+        self.goal_canvas.pack(pady=5)
+        self.goal_bar = self.goal_canvas.create_rectangle(0, 0, 0, 10, fill=theme["timer_color"], outline="")
+        self.update_goal_visual()
 
         # Settings Frame
         self.settings_frame = tk.Frame(self.root, bg=theme["bg"])
@@ -278,7 +288,7 @@ class LuminaTimer:
             self.label_status.pack_forget()
             self.task_frame.pack_forget()
             self.progress.pack_forget()
-            self.label_sessions.pack_forget()
+            self.goal_frame.pack_forget()
             self.settings_frame.pack_forget()
             self.btn_apply.pack_forget()
             self.btn_start.pack_forget()
@@ -305,7 +315,7 @@ class LuminaTimer:
             self.task_frame.pack(pady=10)
             self.label_timer.pack(pady=10)
             self.progress.pack(pady=10)
-            self.label_sessions.pack(pady=10)
+            self.goal_frame.pack(pady=10)
             self.settings_frame.pack(pady=20)
             self.btn_apply.pack(pady=5)
             self.btn_start.pack(pady=10)
@@ -325,7 +335,10 @@ class LuminaTimer:
         self.task_label.config(bg=theme["bg"], fg=theme["text_muted"])
         self.btn_clear_task.config(bg=theme["accent"], fg=theme["text_muted"])
         self.label_timer.config(bg=theme["bg"])
+        self.goal_frame.config(bg=theme["bg"])
         self.label_sessions.config(bg=theme["bg"], fg=theme["text_muted"])
+        self.goal_canvas.config(bg=theme["progress_bg"])
+        self.goal_canvas.itemconfig(self.goal_bar, fill=theme["timer_color"])
         self.settings_frame.config(bg=theme["bg"])
         self.set_work_label.config(bg=theme["bg"], fg=theme["fg"])
         self.set_break_label.config(bg=theme["bg"], fg=theme["fg"])
@@ -384,6 +397,12 @@ class LuminaTimer:
         percentage = (elapsed / total) * 100 if total > 0 else 0
         self.progress['value'] = percentage
 
+    def update_goal_visual(self):
+        if self.session_goal <= 0:
+            return
+        fraction = min(self.sessions_completed / self.session_goal, 1.0)
+        self.goal_canvas.coords(self.goal_bar, 0, 0, 200 * fraction, 10)
+
     def apply_settings(self):
         try:
             new_work = int(self.work_entry.get()) * 60
@@ -413,6 +432,7 @@ class LuminaTimer:
                 self.update_progress()
             
             self.label_sessions.config(text=f"Sessions: {self.sessions_completed}/{self.session_goal}")
+            self.update_goal_visual()
             messagebox.showinfo("Settings", "Timer durations and goal updated!")
         except ValueError:
             messagebox.showerror("Error", "Please enter valid positive numbers.")
@@ -539,6 +559,29 @@ class LuminaTimer:
             except IOError:
                 messagebox.showerror("Error", "Could not clear logs file.")
 
+    def show_notification(self, title, message):
+        """Creates a non-blocking notification window."""
+        notif = tk.Toplevel(self.root)
+        notif.title(title)
+        notif.geometry("300x100")
+        notif.overrideredirect(True)
+        
+        theme = self.themes[self.current_theme]
+        notif.configure(bg=theme["accent"])
+        
+        # Position the notification in bottom-right corner
+        sw = self.root.winfo_screenwidth()
+        sh = self.root.winfo_screenheight()
+        notif.geometry(f"+ {sw-320} + {sh-120}")
+
+        lbl_title = tk.Label(notif, text=title, font=("Helvetica", 10, "bold"), bg=theme["accent"], fg=theme["fg"])
+        lbl_title.pack(pady=(10, 0))
+        lbl_msg = tk.Label(notif, text=message, font=("Helvetica", 9), bg=theme["accent"], fg=theme["text_muted"])
+        lbl_msg.pack(pady=5)
+
+        # Auto-destroy notification after 5 seconds
+        notif.after(5000, notif.destroy)
+
     def handle_session_complete(self):
         self.is_running = False
         self.is_work_session = not self.is_work_session
@@ -559,6 +602,7 @@ class LuminaTimer:
             self.sessions_completed += 1
             self.log_session()
             self.label_sessions.config(text=f"Sessions: {self.sessions_completed}/{self.session_goal}")
+            self.update_goal_visual()
             
             if self.sessions_completed % 4 == 0:
                 self.current_time = self.long_break_time
@@ -578,7 +622,7 @@ class LuminaTimer:
         self.update_window_title()
         
         self.play_notification_sound()
-        messagebox.showinfo("Timer", msg)
+        self.show_notification("Lumina Timer", msg)
         
         if self.auto_start:
             self.toggle_timer()
