@@ -475,10 +475,39 @@ class LuminaTimer:
 
         logs_window = tk.Toplevel(self.root)
         logs_window.title("Session History")
-        logs_window.geometry("400x350")
+        logs_window.geometry("450x450")
         
         theme = self.themes[self.current_theme]
         logs_window.configure(bg=theme["bg"])
+
+        # Statistics Frame
+        stats_frame = tk.Frame(logs_window, bg=theme["bg"])
+        stats_frame.pack(pady=10, fill="x", padx=20)
+
+        # Calculate statistics
+        total_mins = 0
+        session_count = 0
+        try:
+            with open(self.log_file, "r") as f:
+                for line in f:
+                    if "Duration: " in line:
+                        try:
+                            duration = int(line.split("Duration: ")[1].split(" min")[0])
+                            total_mins += duration
+                            session_count += 1
+                        except (ValueError, IndexError):
+                            continue
+        except IOError:
+            pass
+
+        avg_min = total_mins / session_count if session_count > 0 else 0
+        
+        stats_text = f"Total Focus: {total_mins} min | Sessions: {session_count} | Avg: {avg_min:.1f} min"
+        self.stats_label = tk.Label(
+            stats_frame, text=stats_text, font=("Helvetica", 10, "bold"),
+            bg=theme["bg"], fg=theme["fg"]
+        )
+        self.stats_label.pack()
 
         text_area = tk.Text(logs_window, wrap="word", bg=theme["accent"], fg=theme["fg"], font=("Helvetica", 10))
         text_area.pack(padx=10, pady=10, expand=True, fill="both")
