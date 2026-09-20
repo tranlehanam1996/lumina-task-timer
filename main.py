@@ -77,8 +77,11 @@ class LuminaTimer:
 
         self.setup_ui()
         
-        # Bind Enter key to toggle timer
+        # Bind keyboard shortcuts
         self.root.bind('<Return>', lambda event: self.toggle_timer())
+        self.root.bind('<space>', lambda event: self.toggle_timer())
+        self.root.bind('<Control-r>', lambda event: self.reset_timer())
+        self.root.bind('<Control-f>', lambda event: self.toggle_focus_mode())
 
         # Handle window closing to minimize to tray if available
         if PYSTRAY_AVAILABLE:
@@ -266,7 +269,7 @@ class LuminaTimer:
         )
         self.btn_theme.pack(pady=20)
 
-    def toggle_focus_mode(self):
+    def toggle_focus_mode(self, event=None):
         self.focus_mode = not self.focus_mode
         theme = self.themes[self.current_theme]
         
@@ -414,7 +417,7 @@ class LuminaTimer:
         except ValueError:
             messagebox.showerror("Error", "Please enter valid positive numbers.")
 
-    def toggle_timer(self):
+    def toggle_timer(self, event=None):
         if self.is_running:
             self.is_running = False
             self.btn_start.config(text="Start", bg="#27ae60")
@@ -423,7 +426,7 @@ class LuminaTimer:
             self.btn_start.config(text="Pause", bg="#f39c12")
             self.tick()
 
-    def reset_timer(self):
+    def reset_timer(self, event=None):
         self.is_running = False
         self.is_work_session = True
         self.current_time = self.work_time
