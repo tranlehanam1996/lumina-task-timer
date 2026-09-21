@@ -4,6 +4,7 @@ import platform
 import datetime
 import os
 import json
+from collections import Counter
 
 # Conditional import for sound to maintain cross-platform compatibility
 if platform.system() == "Windows":
@@ -34,7 +35,10 @@ class LuminaTimer:
                 "timer_color": "#e74c3c",
                 "break_color": "#3498db",
                 "long_break_color": "#9b59b6",
-                "progress_bg": "#1a252f"
+                "progress_bg": "#1a252f",
+                "heat_low": "#34495e",
+                "heat_mid": "#e67e22",
+                "heat_high": "#e74c3c"
             },
             "light": {
                 "bg": "#f5f6fa",
@@ -44,7 +48,10 @@ class LuminaTimer:
                 "timer_color": "#c0392b",
                 "break_color": "#2980b9",
                 "long_break_color": "#8e44ad",
-                "progress_bg": "#e1e2e6"
+                "progress_bg": "#e1e2e6",
+                "heat_low": "#bdc3c7",
+                "heat_mid": "#f39c12",
+                "heat_high": "#c0392b"
             }
         }
         self.current_theme = "dark"
@@ -498,7 +505,7 @@ class LuminaTimer:
 
         logs_window = tk.Toplevel(self.root)
         logs_window.title("Session History")
-        logs_window.geometry("450x450")
+        logs_window.geometry("500x600")
         
         theme = self.themes[self.current_theme]
         logs_window.configure(bg=theme["bg"])
@@ -510,11 +517,15 @@ class LuminaTimer:
         # Calculate statistics
         total_mins = 0
         session_count = 0
+        dates = []
         try:
             with open(self.log_file, "r") as f:
                 for line in f:
                     if "Duration: " in line:
                         try:
+                            # Extract date from [YYYY-MM-DD HH:MM]
+                            date_str = line[1:11]
+                            dates.append(date_str)
                             duration = int(line.split("Duration: ")[1].split(" min")[0])
                             total_mins += duration
                             session_count += 1
@@ -531,6 +542,30 @@ class LuminaTimer:
             bg=theme["bg"], fg=theme["fg"]
         )
         self.stats_label.pack()
+
+        # Heat Map Visualization
+        heat_frame = tk.Frame(logs_window, bg=theme["bg"])
+        heat_frame.pack(pady=10)
+        
+        tk.Label(heat_frame, text="Activity Heat Map (Last 30 Days)", bg=theme["bg"], fg=theme["text_muted"], font=("Helvetica", 9)).pack()
+        
+        canvas = tk.Canvas(heat_frame, width=320, height=40, bg=theme["bg"], highlightthickness=0)
+        canvas.pack(pady=5)
+        
+        date_counts = Counter(dates)
+        today = datetime.date.today()
+        
+        for i in range(30):
+            day = today - datetime.timedelta(days=i)
+            day_str = day.strftime("%Y-%m-%d")
+            count = date_counts.get(day_str, 0)
+            
+            color = theme["heat_low"]
+            if count >= 4: color = theme["heat_high"]
+            elif count >= 1: color = theme["heat_mid"]
+            
+            x0 = 300 - (i * 10)
+            canvas.create_rectangle(x0, 10, x0+8, 20, fill=color, outline="")
 
         text_area = tk.Text(logs_window, wrap="word", bg=theme["accent"], fg=theme["fg"], font=("Helvetica", 10))
         text_area.pack(padx=10, pady=10, expand=True, fill="both")
