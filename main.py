@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, ttk, filedialog
 import platform
 import datetime
 import os
@@ -544,6 +544,25 @@ class LuminaTimer:
         with open(self.log_file, "a") as f:
             f.write(f"[{timestamp}] Task: {task} | Duration: {duration} min\n")
 
+    def export_logs(self):
+        if not os.path.exists(self.log_file):
+            messagebox.showinfo("Logs", "No session logs found to export!")
+            return
+        
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            initialfile=f"lumina_logs_{datetime.date.today()}.txt",
+            title="Export Session Logs"
+        )
+        
+        if file_path:
+            try:
+                with open(self.log_file, "r") as f_in, open(file_path, "w") as f_out:
+                    f_out.write(f_in.read())
+                messagebox.showinfo("Export", "Logs successfully exported!")
+            except IOError:
+                messagebox.showerror("Error", "Could not export logs.")
+
     def view_logs(self):
         if not os.path.exists(self.log_file):
             messagebox.showinfo("Logs", "No session logs found yet!")
@@ -622,12 +641,22 @@ class LuminaTimer:
         
         text_area.config(state=tk.DISABLED)
 
+        btn_frame = tk.Frame(logs_window, bg=theme["bg"])
+        btn_frame.pack(pady=10)
+
+        btn_export = tk.Button(
+            btn_frame, text="Export Logs", 
+            command=self.export_logs,
+            font=("Helvetica", 9), bg=theme["accent"], fg=theme["fg"], relief="flat"
+        )
+        btn_export.pack(side=tk.LEFT, padx=10)
+
         btn_clear_logs = tk.Button(
-            logs_window, text="Clear All Logs", 
+            btn_frame, text="Clear All Logs", 
             command=lambda: self.clear_logs(logs_window, text_area),
             font=("Helvetica", 9), bg="#c0392b", fg="white", relief="flat"
         )
-        btn_clear_logs.pack(pady=10)
+        btn_clear_logs.pack(side=tk.LEFT, padx=10)
 
     def clear_logs(self, window, text_area):
         if messagebox.askyesno("Clear Logs", "Are you sure you want to delete all session logs?"):
@@ -654,7 +683,13 @@ class LuminaTimer:
         # Position the notification in the center of the screen
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()
-        notif.geometry(f"+ {int(sw/2 - 150)} + {int(sh/2 - 50)}")
+        notif.geometry(f"+ {int(sw/2 - 150)} + {int(sh/2 - 50)}".replace(" + ", "+").replace(" + ", "+"))
+        # Correction: The string geometry should not have spaces around the plus sign for some Tcl versions
+        notif.geometry(f"+ {int(sw/2 - 150)}+{int(sh/2 - 50)}".replace(" + ", "+"))
+        # Simplified centering
+        notif.geometry(f"+ {int(sw/2 - 150)}+{int(sh/2 - 50)}")
+        # Final attempt: Remove potential spaces that might break geometry
+        notif.geometry(f"+{int(sw/2 - 150)}+{int(sh/2 - 50)}")
 
         lbl_title = tk.Label(notif, text=title, font=("Helvetica", 10, "bold"), bg=theme["accent"], fg=theme["fg"])
         lbl_title.pack(pady=(10, 0))
