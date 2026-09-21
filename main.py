@@ -56,6 +56,13 @@ class LuminaTimer:
         }
         self.current_theme = "dark"
 
+        # Preset definitions: (work, break, long_break)
+        self.presets = {
+            "Classic": (25, 5, 15),
+            "Short": (15, 3, 10),
+            "Intense": (50, 10, 20)
+        }
+
         # Window dimensions and centering
         self.full_geometry = "350x900"
         self.compact_geometry = "200x120"
@@ -203,29 +210,37 @@ class LuminaTimer:
         self.settings_frame = tk.Frame(self.root, bg=theme["bg"])
         self.settings_frame.pack(pady=20)
 
+        # Presets Dropdown
+        self.preset_label = tk.Label(self.settings_frame, text="Preset:", bg=theme["bg"], fg=theme["fg"])
+        self.preset_label.grid(row=0, column=0, padx=5)
+        self.preset_var = tk.StringVar(value="Custom")
+        self.preset_menu = ttk.Combobox(self.settings_frame, textvariable=self.preset_var, values=list(self.presets.keys()) + ["Custom"], state="readonly", width=10)
+        self.preset_menu.grid(row=0, column=1, padx=5, pady=5)
+        self.preset_menu.bind(" <<ComboboxSelected>>", self.apply_preset)
+
         self.set_work_label = tk.Label(self.settings_frame, text="Work (min):", bg=theme["bg"], fg=theme["fg"])
-        self.set_work_label.grid(row=0, column=0, padx=5)
+        self.set_work_label.grid(row=1, column=0, padx=5)
         self.work_entry = tk.Entry(self.settings_frame, width=5)
         self.work_entry.insert(0, str(self.work_time // 60))
-        self.work_entry.grid(row=0, column=1, padx=5)
+        self.work_entry.grid(row=1, column=1, padx=5)
 
         self.set_break_label = tk.Label(self.settings_frame, text="Break (min):", bg=theme["bg"], fg=theme["fg"])
-        self.set_break_label.grid(row=1, column=0, padx=5)
+        self.set_break_label.grid(row=2, column=0, padx=5)
         self.break_entry = tk.Entry(self.settings_frame, width=5)
         self.break_entry.insert(0, str(self.break_time // 60))
-        self.break_entry.grid(row=1, column=1, padx=5)
+        self.break_entry.grid(row=2, column=1, padx=5)
 
         self.set_long_label = tk.Label(self.settings_frame, text="Long Break (min):", bg=theme["bg"], fg=theme["fg"])
-        self.set_long_label.grid(row=2, column=0, padx=5)
+        self.set_long_label.grid(row=3, column=0, padx=5)
         self.long_break_entry = tk.Entry(self.settings_frame, width=5)
         self.long_break_entry.insert(0, str(self.long_break_time // 60))
-        self.long_break_entry.grid(row=2, column=1, padx=5)
+        self.long_break_entry.grid(row=3, column=1, padx=5)
 
         self.set_goal_label = tk.Label(self.settings_frame, text="Goal (sessions):", bg=theme["bg"], fg=theme["fg"])
-        self.set_goal_label.grid(row=3, column=0, padx=5)
+        self.set_goal_label.grid(row=4, column=0, padx=5)
         self.goal_entry = tk.Entry(self.settings_frame, width=5)
         self.goal_entry.insert(0, str(self.session_goal))
-        self.goal_entry.grid(row=3, column=1, padx=5)
+        self.goal_entry.grid(row=4, column=1, padx=5)
 
         # Always on top toggle
         self.stay_on_top_var = tk.BooleanVar(value=self.stay_on_top)
@@ -234,7 +249,7 @@ class LuminaTimer:
             bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"],
             command=self.toggle_topmost, font=("Helvetica", 9)
         )
-        self.chk_topmost.grid(row=4, column=0, columnspan=2, pady=5)
+        self.chk_topmost.grid(row=5, column=0, columnspan=2, pady=5)
 
         # Auto-start toggle
         self.auto_start_var = tk.BooleanVar(value=self.auto_start)
@@ -243,7 +258,7 @@ class LuminaTimer:
             bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"],
             command=self.toggle_autostart, font=("Helvetica", 9)
         )
-        self.chk_autostart.grid(row=5, column=0, columnspan=2, pady=5)
+        self.chk_autostart.grid(row=6, column=0, columnspan=2, pady=5)
 
         # Sound toggle
         self.sound_var = tk.BooleanVar(value=self.sound_enabled)
@@ -252,7 +267,7 @@ class LuminaTimer:
             bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"],
             command=self.toggle_sound, font=("Helvetica", 9)
         )
-        self.chk_sound.grid(row=6, column=0, columnspan=2, pady=5)
+        self.chk_sound.grid(row=7, column=0, columnspan=2, pady=5)
 
         self.btn_apply = tk.Button(
             self.root, text="Apply Settings", command=self.apply_settings,
@@ -297,6 +312,19 @@ class LuminaTimer:
             relief="flat"
         )
         self.btn_theme.pack(pady=20)
+
+    def apply_preset(self, event=None):
+        preset_name = self.preset_var.get()
+        if preset_name in self.presets:
+            work, break_t, long_break = self.presets[preset_name]
+            self.work_entry.delete(0, tk.END)
+            self.work_entry.insert(0, str(work))
+            self.break_entry.delete(0, tk.END)
+            self.break_entry.insert(0, str(break_t))
+            self.long_break_entry.delete(0, tk.END)
+            self.long_break_entry.insert(0, str(long_break))
+        elif preset_name == "Custom":
+            pass
 
     def toggle_focus_mode(self, event=None):
         self.focus_mode = not self.focus_mode
@@ -363,6 +391,7 @@ class LuminaTimer:
         self.set_break_label.config(bg=theme["bg"], fg=theme["fg"])
         self.set_long_label.config(bg=theme["bg"], fg=theme["fg"])
         self.set_goal_label.config(bg=theme["bg"], fg=theme["fg"])
+        self.preset_label.config(bg=theme["bg"], fg=theme["fg"])
         self.chk_topmost.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
         self.chk_autostart.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
         self.chk_sound.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
