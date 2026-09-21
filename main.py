@@ -550,7 +550,7 @@ class LuminaTimer:
             return
 
         logs_window = tk.Toplevel(self.root)
-        logs_window.title("Session History")
+        logs_window.title("Lumina - Productivity History")
         logs_window.geometry("500x600")
         
         theme = self.themes[self.current_theme]
@@ -595,7 +595,7 @@ class LuminaTimer:
         
         tk.Label(heat_frame, text="Activity Heat Map (Last 30 Days)", bg=theme["bg"], fg=theme["text_muted"], font=("Helvetica", 9)).pack()
         
-        canvas = tk.Canvas(heat_frame, width=320, height=40, bg=theme["bg"], highlightthickness=0)
+        canvas = tk.Canvas(heat_frame, width=310, height=40, bg=theme["bg"], highlightthickness=0)
         canvas.pack(pady=5)
         
         date_counts = Counter(dates)
@@ -610,6 +610,7 @@ class LuminaTimer:
             if count >= 4: color = theme["heat_high"]
             elif count >= 1: color = theme["heat_mid"]
             
+            # Adjusted x coordinate to stay within canvas boundaries
             x0 = 300 - (i * 10)
             canvas.create_rectangle(x0, 10, x0+8, 20, fill=color, outline="")
 
