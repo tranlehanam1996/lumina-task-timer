@@ -104,7 +104,8 @@ class LuminaTimer:
             "long_break_time": 15 * 60,
             "session_goal": 4,
             "stay_on_top": False,
-            "auto_start": False
+            "auto_start": False,
+            "sound_enabled": True
         }
         if os.path.exists(self.config_file):
             try:
@@ -116,10 +117,11 @@ class LuminaTimer:
                     self.session_goal = settings.get("session_goal", defaults["session_goal"])
                     self.stay_on_top = settings.get("stay_on_top", defaults["stay_on_top"])
                     self.auto_start = settings.get("auto_start", defaults["auto_start"])
+                    self.sound_enabled = settings.get("sound_enabled", defaults["sound_enabled"])
             except (json.JSONDecodeError, IOError):
-                self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top, self.auto_start = defaults.values()
+                self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top, self.auto_start, self.sound_enabled = defaults.values()
         else:
-            self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top, self.auto_start = defaults.values()
+            self.work_time, self.break_time, self.long_break_time, self.session_goal, self.stay_on_top, self.auto_start, self.sound_enabled = defaults.values()
         
         if self.stay_on_top:
             self.root.attributes('-topmost', True)
@@ -132,7 +134,8 @@ class LuminaTimer:
                 "long_break_time": self.long_break_time,
                 "session_goal": self.session_goal,
                 "stay_on_top": self.stay_on_top,
-                "auto_start": self.auto_start
+                "auto_start": self.auto_start,
+                "sound_enabled": self.sound_enabled
             }
             with open(self.config_file, "w") as f:
                 json.dump(settings, f)
@@ -241,6 +244,15 @@ class LuminaTimer:
             command=self.toggle_autostart, font=("Helvetica", 9)
         )
         self.chk_autostart.grid(row=5, column=0, columnspan=2, pady=5)
+
+        # Sound toggle
+        self.sound_var = tk.BooleanVar(value=self.sound_enabled)
+        self.chk_sound = tk.Checkbutton(
+            self.settings_frame, text="Enable Notifications", variable=self.sound_var,
+            bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"],
+            command=self.toggle_sound, font=("Helvetica", 9)
+        )
+        self.chk_sound.grid(row=6, column=0, columnspan=2, pady=5)
 
         self.btn_apply = tk.Button(
             self.root, text="Apply Settings", command=self.apply_settings,
@@ -353,6 +365,7 @@ class LuminaTimer:
         self.set_goal_label.config(bg=theme["bg"], fg=theme["fg"])
         self.chk_topmost.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
         self.chk_autostart.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
+        self.chk_sound.config(bg=theme["bg"], fg=theme["fg"], selectcolor=theme["accent"])
         self.btn_logs.config(bg=theme["accent"], fg=theme["text_muted"])
         self.btn_focus.config(bg=theme["accent"], fg=theme["text_muted"])
         self.btn_theme.config(bg=theme["accent"], fg=theme["text_muted"], 
@@ -398,6 +411,9 @@ class LuminaTimer:
     def toggle_autostart(self):
         self.auto_start = self.auto_start_var.get()
 
+    def toggle_sound(self):
+        self.sound_enabled = self.sound_var.get()
+
     def update_progress(self):
         total = self.work_time if self.is_work_session else (self.long_break_time if self.sessions_completed % 4 == 0 and self.sessions_completed > 0 else self.break_time)
         elapsed = total - self.current_time
@@ -426,6 +442,7 @@ class LuminaTimer:
             self.session_goal = new_goal
             self.stay_on_top = self.stay_on_top_var.get()
             self.auto_start = self.auto_start_var.get()
+            self.sound_enabled = self.sound_var.get()
             self.save_settings()
             
             if not self.is_running:
@@ -467,7 +484,7 @@ class LuminaTimer:
     def tick(self):
         if self.is_running:
             if self.current_time > 0:
-                if 0 < self.current_time <= 3:
+                if 0 < self.current_time <= 3 and self.sound_enabled:
                     self.play_notification_sound(frequency=800, duration=100)
                 
                 self.current_time -= 1
@@ -481,7 +498,7 @@ class LuminaTimer:
                 self.handle_session_complete()
 
     def play_notification_sound(self, frequency=1000, duration=500):
-        if winsound:
+        if self.sound_enabled and winsound:
             try:
                 winsound.Beep(frequency, duration)
             except Exception:
@@ -595,7 +612,7 @@ class LuminaTimer:
                 messagebox.showerror("Error", "Could not clear logs file.")
 
     def show_notification(self, title, message):
-        """Creates a non-blocking notification window."""
+        """Creates a non-blocking notification window centered on screen."""
         notif = tk.Toplevel(self.root)
         notif.title(title)
         notif.geometry("300x100")
@@ -604,10 +621,10 @@ class LuminaTimer:
         theme = self.themes[self.current_theme]
         notif.configure(bg=theme["accent"])
         
-        # Position the notification in bottom-right corner
+        # Position the notification in the center of the screen
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()
-        notif.geometry(f"+ {sw-320} + {sh-120}")
+        notif.geometry(f"+ {int(sw/2 - 150)} + {int(sh/2 - 50)}")
 
         lbl_title = tk.Label(notif, text=title, font=("Helvetica", 10, "bold"), bg=theme["accent"], fg=theme["fg"])
         lbl_title.pack(pady=(10, 0))
