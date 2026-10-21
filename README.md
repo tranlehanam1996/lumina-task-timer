@@ -35,3 +35,13 @@ Lumina is built using Python and requires the `tkinter` library (which comes pre
 4. When the timer hits zero, you will be notified to take a break.
 5. The timer will automatically switch between Work and Break modes.
 6. Use the **View Logs** button to see your productivity history.
+
+## Core Logic
+
+The Pomodoro state machine lives in `timer_logic.py` and has no GUI dependencies, so it can be unit tested directly:
+
+```bash
+python -m unittest discover -s tests
+```
+
+`PomodoroTimer` exposes `start`, `pause`, `reset`, `tick`, `progress`, and serialization helpers (`to_dict`/`from_dict`).
