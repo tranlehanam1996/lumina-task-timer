@@ -88,7 +88,8 @@ class PomodoroTimer:
         if not self.is_running or self.is_paused:
             return False
         if self.remaining_seconds <= 0:
-            return False
+            self.remaining_seconds = 0
+            return self._complete_session()
         self.remaining_seconds -= 1
         if self.remaining_seconds <= 0:
             return self._complete_session()
@@ -117,7 +118,12 @@ class PomodoroTimer:
         total = self.total_seconds
         if total <= 0:
             return 0.0
-        return (total - self.remaining_seconds) / total
+        remaining = self.remaining_seconds
+        if remaining < 0:
+            remaining = 0
+        elif remaining > total:
+            remaining = total
+        return (total - remaining) / total
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -131,10 +137,42 @@ class PomodoroTimer:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "PomodoroTimer":
-        timer = cls(TimerConfig(**data.get("config", {})))
-        timer.session_type = SessionType(data.get("session_type", SessionType.WORK.value))
-        timer.remaining_seconds = data.get("remaining_seconds", timer.total_seconds)
-        timer.completed_work_sessions = data.get("completed_work_sessions", 0)
+        if not isinstance(data, dict):
+            raise ValueError("timer state must be a mapping")
+
+        raw_config = data.get("config", {})
+        if raw_config is None:
+            raw_config = {}
+        timer = cls(TimerConfig(**raw_config))
+
+        raw_session_type = data.get("session_type", SessionType.WORK.value)
+        if isinstance(raw_session_type, SessionType):
+            timer.session_type = raw_session_type
+        else:
+            timer.session_type = SessionType(raw_session_type)
+
+        raw_remaining = data.get("remaining_seconds", timer.total_seconds)
+        if isinstance(raw_remaining, bool) or not isinstance(raw_remaining, int):
+            try:
+                raw_remaining = int(raw_remaining)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("remaining_seconds must be an integer") from exc
+        if raw_remaining < 0:
+            raw_remaining = 0
+        if raw_remaining > timer.total_seconds:
+            raw_remaining = timer.total_seconds
+        timer.remaining_seconds = raw_remaining
+
+        raw_completed = data.get("completed_work_sessions", 0)
+        if isinstance(raw_completed, bool) or not isinstance(raw_completed, int):
+            try:
+                raw_completed = int(raw_completed)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("completed_work_sessions must be an integer") from exc
+        if raw_completed < 0:
+            raw_completed = 0
+        timer.completed_work_sessions = raw_completed
+
         is_paused = bool(data.get("is_paused", False))
         timer.is_paused = is_paused
         timer.is_running = bool(data.get("is_running", False)) and not is_paused
