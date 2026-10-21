@@ -25,6 +25,9 @@ class TimerConfig:
     long_break_minutes: int = 15
     sessions_until_long_break: int = 4
 
+    def __post_init__(self) -> None:
+        self.validate()
+
     def validate(self) -> None:
         for name in ("work_minutes", "short_break_minutes", "long_break_minutes"):
             value = getattr(self, name)
@@ -132,6 +135,7 @@ class PomodoroTimer:
         timer.session_type = SessionType(data.get("session_type", SessionType.WORK.value))
         timer.remaining_seconds = data.get("remaining_seconds", timer.total_seconds)
         timer.completed_work_sessions = data.get("completed_work_sessions", 0)
-        timer.is_running = bool(data.get("is_running", False))
-        timer.is_paused = bool(data.get("is_paused", False))
+        is_paused = bool(data.get("is_paused", False))
+        timer.is_paused = is_paused
+        timer.is_running = bool(data.get("is_running", False)) and not is_paused
         return timer

@@ -17,6 +17,12 @@ class TestTimerConfig(unittest.TestCase):
         with self.assertRaises(ValueError):
             TimerConfig(sessions_until_long_break=0).validate()
 
+    def test_constructor_validates_config(self):
+        with self.assertRaises(ValueError):
+            TimerConfig(work_minutes=0)
+        with self.assertRaises(ValueError):
+            PomodoroTimer(TimerConfig(short_break_minutes=0))
+
 
 class TestPomodoroTimer(unittest.TestCase):
     def test_initial_state(self):
@@ -90,6 +96,22 @@ class TestPomodoroTimer(unittest.TestCase):
         self.assertEqual(restored.remaining_seconds, t.remaining_seconds)
         self.assertEqual(restored.session_type, t.session_type)
         self.assertEqual(restored.completed_work_sessions, t.completed_work_sessions)
+
+    def test_from_dict_normalizes_conflicting_state(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        data = t.to_dict()
+        data["is_running"] = True
+        data["is_paused"] = True
+        restored = PomodoroTimer.from_dict(data)
+        self.assertFalse(restored.is_running)
+        self.assertTrue(restored.is_paused)
+
+    def test_from_dict_rejects_invalid_config(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        data = t.to_dict()
+        data["config"]["work_minutes"] = 0
+        with self.assertRaises(ValueError):
+            PomodoroTimer.from_dict(data)
 
 
 if __name__ == "__main__":
