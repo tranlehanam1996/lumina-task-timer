@@ -143,7 +143,12 @@ class PomodoroTimer:
         raw_config = data.get("config", {})
         if raw_config is None:
             raw_config = {}
-        timer = cls(TimerConfig(**raw_config))
+        if not isinstance(raw_config, dict):
+            raise ValueError("config must be a mapping")
+        try:
+            timer = cls(TimerConfig(**raw_config))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid timer config") from exc
 
         raw_session_type = data.get("session_type", SessionType.WORK.value)
         if isinstance(raw_session_type, SessionType):

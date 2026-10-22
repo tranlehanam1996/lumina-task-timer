@@ -113,6 +113,17 @@ class TestPomodoroTimer(unittest.TestCase):
         with self.assertRaises(ValueError):
             PomodoroTimer.from_dict(data)
 
+    def test_from_dict_rejects_invalid_config_type(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        data = t.to_dict()
+        data["config"] = "not-a-mapping"
+        with self.assertRaises(ValueError):
+            PomodoroTimer.from_dict(data)
+
+    def test_from_dict_rejects_non_mapping_state(self):
+        with self.assertRaises(ValueError):
+            PomodoroTimer.from_dict([])
+
     def test_from_dict_clamps_remaining_seconds(self):
         t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
         data = t.to_dict()
