@@ -151,10 +151,13 @@ class PomodoroTimer:
             raise ValueError("invalid timer config") from exc
 
         raw_session_type = data.get("session_type", SessionType.WORK.value)
-        if isinstance(raw_session_type, SessionType):
-            timer.session_type = raw_session_type
-        else:
-            timer.session_type = SessionType(raw_session_type)
+        try:
+            if isinstance(raw_session_type, SessionType):
+                timer.session_type = raw_session_type
+            else:
+                timer.session_type = SessionType(raw_session_type)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid session_type") from exc
 
         raw_remaining = data.get("remaining_seconds", timer.total_seconds)
         if isinstance(raw_remaining, bool) or not isinstance(raw_remaining, int):

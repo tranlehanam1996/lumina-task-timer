@@ -155,6 +155,21 @@ class TestPomodoroTimer(unittest.TestCase):
         self.assertTrue(t.tick())
         self.assertEqual(t.session_type, SessionType.SHORT_BREAK)
 
+    def test_from_dict_rejects_invalid_session_type(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        data = t.to_dict()
+        for invalid in ("not-a-session", None, 42):
+            data["session_type"] = invalid
+            with self.assertRaises(ValueError):
+                PomodoroTimer.from_dict(data)
+
+    def test_from_dict_valid_session_type_enum(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        data = t.to_dict()
+        data["session_type"] = SessionType.SHORT_BREAK
+        restored = PomodoroTimer.from_dict(data)
+        self.assertEqual(restored.session_type, SessionType.SHORT_BREAK)
+
 
 if __name__ == "__main__":
     unittest.main()
