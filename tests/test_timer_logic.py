@@ -171,5 +171,39 @@ class TestPomodoroTimer(unittest.TestCase):
         self.assertEqual(restored.session_type, SessionType.SHORT_BREAK)
 
 
+class TestPomodoroTimerAdvance(unittest.TestCase):
+    def test_advance_progresses_without_completion(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        self.assertEqual(t.advance(30), 0)
+        self.assertEqual(t.remaining_seconds, 30)
+        self.assertTrue(t.is_running)
+
+    def test_advance_completes_session_and_stops(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        self.assertEqual(t.advance(60), 1)
+        self.assertFalse(t.is_running)
+        self.assertEqual(t.session_type, SessionType.SHORT_BREAK)
+        self.assertEqual(t.remaining_seconds, t.total_seconds)
+
+    def test_advance_paused_or_stopped_is_unchanged(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        t.tick()
+        before = t.remaining_seconds
+        t.pause()
+        self.assertEqual(t.advance(10), 0)
+        self.assertEqual(t.remaining_seconds, before)
+        self.assertTrue(t.is_paused)
+        self.assertFalse(t.is_running)
+
+    def test_advance_validates_even_when_stopped(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        for invalid in (-1, True, 1.5):
+            with self.assertRaises(ValueError):
+                t.advance(invalid)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -101,10 +101,14 @@ class PomodoroTimer:
         Returns the number of sessions completed during the advance. A paused or
         stopped timer is left unchanged.
         """
+        if (
+            not isinstance(seconds, int)
+            or isinstance(seconds, bool)
+            or seconds < 0
+        ):
+            raise ValueError("seconds must be a non-negative integer")
         if not self.is_running or self.is_paused:
             return 0
-        if not isinstance(seconds, int) or isinstance(seconds, bool) or seconds < 0:
-            raise ValueError("seconds must be a non-negative integer")
         completed = 0
         for _ in range(seconds):
             if self.tick():
