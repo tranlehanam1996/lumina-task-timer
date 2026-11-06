@@ -99,7 +99,8 @@ class PomodoroTimer:
         """Advance the timer by the given number of seconds.
 
         Returns the number of sessions completed during the advance. A paused or
-        stopped timer is left unchanged.
+        stopped timer is left unchanged. A completing timer stops after the
+        first completed session, so at most one session can be completed.
         """
         if (
             not isinstance(seconds, int)
@@ -109,13 +110,15 @@ class PomodoroTimer:
             raise ValueError("seconds must be a non-negative integer")
         if not self.is_running or self.is_paused:
             return 0
-        completed = 0
-        for _ in range(seconds):
-            if self.tick():
-                completed += 1
-                if not self.is_running:
-                    break
-        return completed
+        if seconds == 0:
+            return 0
+        # Completing a session stops the timer, so do not attempt to process
+        # time beyond the first completion. Large requests are therefore O(1).
+        if self.remaining_seconds <= 0 or seconds >= self.remaining_seconds:
+            self._complete_session()
+            return 1
+        self.remaining_seconds -= seconds
+        return 0
 
     def _complete_session(self) -> bool:
         if self.session_type is SessionType.WORK:
@@ -182,7 +185,9 @@ class PomodoroTimer:
             raise ValueError("invalid session_type") from exc
 
         raw_remaining = data.get("remaining_seconds", timer.total_seconds)
-        if isinstance(raw_remaining, bool) or not isinstance(raw_remaining, int):
+        if isinstance(raw_remaining, bool):
+            raise ValueError("remaining_seconds must be an integer")
+        if not isinstance(raw_remaining, int):
             try:
                 raw_remaining = int(raw_remaining)
             except (TypeError, ValueError) as exc:
@@ -194,7 +199,9 @@ class PomodoroTimer:
         timer.remaining_seconds = raw_remaining
 
         raw_completed = data.get("completed_work_sessions", 0)
-        if isinstance(raw_completed, bool) or not isinstance(raw_completed, int):
+        if isinstance(raw_completed, bool):
+            raise ValueError("completed_work_sessions must be an integer")
+        if not isinstance(raw_completed, int):
             try:
                 raw_completed = int(raw_completed)
             except (TypeError, ValueError) as exc:
