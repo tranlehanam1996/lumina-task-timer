@@ -210,7 +210,14 @@ class PomodoroTimer:
             raw_completed = 0
         timer.completed_work_sessions = raw_completed
 
-        is_paused = bool(data.get("is_paused", False))
+        raw_is_paused = data.get("is_paused", False)
+        if not isinstance(raw_is_paused, bool):
+            raise ValueError("is_paused must be a boolean")
+        raw_is_running = data.get("is_running", False)
+        if not isinstance(raw_is_running, bool):
+            raise ValueError("is_running must be a boolean")
+
+        is_paused = raw_is_paused
         timer.is_paused = is_paused
-        timer.is_running = bool(data.get("is_running", False)) and not is_paused
+        timer.is_running = raw_is_running and not is_paused
         return timer
