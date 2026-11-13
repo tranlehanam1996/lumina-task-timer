@@ -45,7 +45,11 @@ class PomodoroTimer:
     """A small state machine describing one Pomodoro timer instance."""
 
     def __init__(self, config: TimerConfig = None):
-        self.config = config if config is not None else TimerConfig()
+        if config is None:
+            config = TimerConfig()
+        if not isinstance(config, TimerConfig):
+            raise ValueError("config must be a TimerConfig instance")
+        self.config = config
         self.config.validate()
         self.session_type = SessionType.WORK
         self.remaining_seconds = self.config.work_minutes * 60
@@ -190,7 +194,7 @@ class PomodoroTimer:
         if not isinstance(raw_remaining, int):
             try:
                 raw_remaining = int(raw_remaining)
-            except (TypeError, ValueError) as exc:
+            except (TypeError, ValueError, OverflowError) as exc:
                 raise ValueError("remaining_seconds must be an integer") from exc
         if raw_remaining < 0:
             raw_remaining = 0
@@ -204,7 +208,7 @@ class PomodoroTimer:
         if not isinstance(raw_completed, int):
             try:
                 raw_completed = int(raw_completed)
-            except (TypeError, ValueError) as exc:
+            except (TypeError, ValueError, OverflowError) as exc:
                 raise ValueError("completed_work_sessions must be an integer") from exc
         if raw_completed < 0:
             raw_completed = 0

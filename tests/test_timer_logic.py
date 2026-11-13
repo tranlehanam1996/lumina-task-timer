@@ -22,6 +22,8 @@ class TestTimerConfig(unittest.TestCase):
             TimerConfig(work_minutes=0)
         with self.assertRaises(ValueError):
             PomodoroTimer(TimerConfig(short_break_minutes=0))
+        with self.assertRaises(ValueError):
+            PomodoroTimer("not-a-config")
 
 
 class TestPomodoroTimer(unittest.TestCase):
