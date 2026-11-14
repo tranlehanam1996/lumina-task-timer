@@ -207,5 +207,18 @@ class TestPomodoroTimerAdvance(unittest.TestCase):
                 t.advance(invalid)
 
 
+class TestPomodoroTimerEquality(unittest.TestCase):
+    def test_equality_compares_state(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        for _ in range(10):
+            t.tick()
+        restored = PomodoroTimer.from_dict(t.to_dict())
+        self.assertEqual(t, restored)
+        restored.remaining_seconds -= 1
+        self.assertNotEqual(t, restored)
+        self.assertNotEqual(t, "not-a-timer")
+
+
 if __name__ == "__main__":
     unittest.main()

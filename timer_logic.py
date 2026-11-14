@@ -65,6 +65,18 @@ class PomodoroTimer:
             return self.config.short_break_minutes * 60
         return self.config.long_break_minutes * 60
 
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, PomodoroTimer):
+            return NotImplemented
+        return (
+            self.config == other.config
+            and self.session_type == other.session_type
+            and self.remaining_seconds == other.remaining_seconds
+            and self.completed_work_sessions == other.completed_work_sessions
+            and self.is_running == other.is_running
+            and self.is_paused == other.is_paused
+        )
+
     def start(self) -> None:
         """Start or resume the timer."""
         self.is_paused = False
