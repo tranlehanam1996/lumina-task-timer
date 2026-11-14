@@ -65,6 +65,19 @@ class PomodoroTimer:
             return self.config.short_break_minutes * 60
         return self.config.long_break_minutes * 60
 
+    @property
+    def elapsed_seconds(self) -> int:
+        """Seconds elapsed in the current session (0 to total_seconds)."""
+        total = self.total_seconds
+        if total <= 0:
+            return 0
+        remaining = self.remaining_seconds
+        if remaining < 0:
+            remaining = 0
+        elif remaining > total:
+            remaining = total
+        return total - remaining
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, PomodoroTimer):
             return NotImplemented

@@ -220,5 +220,22 @@ class TestPomodoroTimerEquality(unittest.TestCase):
         self.assertNotEqual(t, "not-a-timer")
 
 
+class TestPomodoroTimerElapsed(unittest.TestCase):
+    def test_elapsed_seconds_tracks_ticked_time(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        for _ in range(15):
+            t.tick()
+        self.assertEqual(t.elapsed_seconds, 15)
+        self.assertEqual(t.remaining_seconds, 45)
+
+    def test_elapsed_seconds_clamps_restored_remaining(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.remaining_seconds = 999
+        self.assertEqual(t.elapsed_seconds, 0)
+        t.remaining_seconds = -5
+        self.assertEqual(t.elapsed_seconds, t.total_seconds)
+
+
 if __name__ == "__main__":
     unittest.main()
