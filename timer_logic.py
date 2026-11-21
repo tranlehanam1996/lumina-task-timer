@@ -90,6 +90,16 @@ class PomodoroTimer:
             and self.is_paused == other.is_paused
         )
 
+    def __repr__(self) -> str:
+        return (
+            f"PomodoroTimer(config={self.config!r}, "
+            f"session_type={self.session_type!r}, "
+            f"remaining_seconds={self.remaining_seconds!r}, "
+            f"completed_work_sessions={self.completed_work_sessions!r}, "
+            f"is_running={self.is_running!r}, "
+            f"is_paused={self.is_paused!r})"
+        )
+
     def start(self) -> None:
         """Start or resume the timer."""
         self.is_paused = False
