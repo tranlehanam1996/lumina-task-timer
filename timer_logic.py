@@ -224,13 +224,8 @@ class PomodoroTimer:
             raise ValueError("invalid session_type") from exc
 
         raw_remaining = data.get("remaining_seconds", timer.total_seconds)
-        if isinstance(raw_remaining, bool):
+        if isinstance(raw_remaining, bool) or not isinstance(raw_remaining, int):
             raise ValueError("remaining_seconds must be an integer")
-        if not isinstance(raw_remaining, int):
-            try:
-                raw_remaining = int(raw_remaining)
-            except (TypeError, ValueError, OverflowError) as exc:
-                raise ValueError("remaining_seconds must be an integer") from exc
         if raw_remaining < 0:
             raw_remaining = 0
         if raw_remaining > timer.total_seconds:
@@ -238,13 +233,8 @@ class PomodoroTimer:
         timer.remaining_seconds = raw_remaining
 
         raw_completed = data.get("completed_work_sessions", 0)
-        if isinstance(raw_completed, bool):
+        if isinstance(raw_completed, bool) or not isinstance(raw_completed, int):
             raise ValueError("completed_work_sessions must be an integer")
-        if not isinstance(raw_completed, int):
-            try:
-                raw_completed = int(raw_completed)
-            except (TypeError, ValueError, OverflowError) as exc:
-                raise ValueError("completed_work_sessions must be an integer") from exc
         if raw_completed < 0:
             raw_completed = 0
         timer.completed_work_sessions = raw_completed
