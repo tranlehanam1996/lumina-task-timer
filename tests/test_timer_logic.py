@@ -237,5 +237,35 @@ class TestPomodoroTimerElapsed(unittest.TestCase):
         self.assertEqual(t.elapsed_seconds, t.total_seconds)
 
 
+class TestPomodoroTimerCopyAndJson(unittest.TestCase):
+    def test_copy_is_equal_and_independent(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        for _ in range(15):
+            t.tick()
+        copied = t.copy()
+        self.assertEqual(t, copied)
+        self.assertIsNot(t, copied)
+        copied.tick()
+        self.assertNotEqual(t, copied)
+
+    def test_clone_alias_matches_copy(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        self.assertEqual(t.clone(), t.copy())
+
+    def test_json_roundtrip(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        for _ in range(15):
+            t.tick()
+        restored = PomodoroTimer.from_json(t.to_json())
+        self.assertEqual(restored, t)
+
+    def test_from_json_rejects_invalid_input(self):
+        for invalid in (42, None, b"{}", "{not json}"):
+            with self.assertRaises(ValueError):
+                PomodoroTimer.from_json(invalid)
+
+
 if __name__ == "__main__":
     unittest.main()

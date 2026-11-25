@@ -5,6 +5,7 @@ free of any GUI dependency makes it easy to unit test and reuse from other
 front ends (CLI, web, etc.).
 """
 
+import json
 from dataclasses import dataclass, asdict
 from enum import Enum
 from typing import Any, Dict
@@ -250,3 +251,26 @@ class PomodoroTimer:
         timer.is_paused = is_paused
         timer.is_running = raw_is_running and not is_paused
         return timer
+
+    def copy(self) -> "PomodoroTimer":
+        """Return an independent copy of this timer's current state."""
+        return PomodoroTimer.from_dict(self.to_dict())
+
+    def clone(self) -> "PomodoroTimer":
+        """Alias for :meth:`copy`."""
+        return self.copy()
+
+    def to_json(self) -> str:
+        """Serialize this timer to a JSON string."""
+        return json.dumps(self.to_dict())
+
+    @classmethod
+    def from_json(cls, payload: str) -> "PomodoroTimer":
+        """Restore a timer from a JSON string produced by :meth:`to_json`."""
+        if not isinstance(payload, str):
+            raise ValueError("timer state JSON must be a string")
+        try:
+            data = json.loads(payload)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("invalid timer state JSON") from exc
+        return cls.from_dict(data)
