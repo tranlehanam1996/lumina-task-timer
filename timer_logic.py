@@ -79,6 +79,36 @@ class PomodoroTimer:
             remaining = total
         return total - remaining
 
+    @property
+    def is_idle(self) -> bool:
+        """Whether the timer is neither running nor paused."""
+        return not self.is_running and not self.is_paused
+
+    @property
+    def is_break(self) -> bool:
+        """Whether the current session is a break session."""
+        return self.session_type is not SessionType.WORK
+
+    @property
+    def status(self) -> str:
+        """A concise runtime status string: idle, running, or paused."""
+        if self.is_running:
+            return "running"
+        if self.is_paused:
+            return "paused"
+        return "idle"
+
+    @property
+    def next_session_type(self) -> SessionType:
+        """The session type that follows completion of the current session."""
+        if self.session_type is SessionType.WORK:
+            if (
+                self.completed_work_sessions + 1
+            ) % self.config.sessions_until_long_break == 0:
+                return SessionType.LONG_BREAK
+            return SessionType.SHORT_BREAK
+        return SessionType.WORK
+
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, PomodoroTimer):
             return NotImplemented
@@ -159,6 +189,15 @@ class PomodoroTimer:
             return 1
         self.remaining_seconds -= seconds
         return 0
+
+    def skip(self) -> None:
+        """Skip the current session and move to the next one.
+
+        Skipping behaves like completing the current session early: it updates
+        the session type and completed-session count, resets the timer to the
+        following session's full duration, and stops the timer.
+        """
+        self._complete_session()
 
     def _complete_session(self) -> bool:
         if self.session_type is SessionType.WORK:

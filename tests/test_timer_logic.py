@@ -267,5 +267,45 @@ class TestPomodoroTimerCopyAndJson(unittest.TestCase):
                 PomodoroTimer.from_json(invalid)
 
 
+class TestPomodoroTimerStatusAndSkip(unittest.TestCase):
+    def test_status_and_idle_helpers(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        self.assertEqual(t.status, "idle")
+        self.assertTrue(t.is_idle)
+        self.assertFalse(t.is_break)
+        t.start()
+        self.assertEqual(t.status, "running")
+        self.assertFalse(t.is_idle)
+        t.pause()
+        self.assertEqual(t.status, "paused")
+        self.assertFalse(t.is_idle)
+
+    def test_next_session_type(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2, sessions_until_long_break=2))
+        self.assertEqual(t.next_session_type, SessionType.SHORT_BREAK)
+        t.completed_work_sessions = 1
+        self.assertEqual(t.next_session_type, SessionType.LONG_BREAK)
+        t.session_type = SessionType.SHORT_BREAK
+        self.assertEqual(t.next_session_type, SessionType.WORK)
+
+    def test_skip_advances_to_next_session(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        for _ in range(20):
+            t.tick()
+        t.skip()
+        self.assertEqual(t.session_type, SessionType.SHORT_BREAK)
+        self.assertEqual(t.remaining_seconds, t.total_seconds)
+        self.assertFalse(t.is_running)
+        self.assertFalse(t.is_paused)
+        self.assertEqual(t.completed_work_sessions, 1)
+
+    def test_skip_works_while_idle(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.skip()
+        self.assertEqual(t.session_type, SessionType.SHORT_BREAK)
+        self.assertTrue(t.is_idle)
+
+
 if __name__ == "__main__":
     unittest.main()
