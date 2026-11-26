@@ -80,6 +80,18 @@ class PomodoroTimer:
         return total - remaining
 
     @property
+    def remaining_time(self) -> str:
+        """Remaining time formatted as ``MM:SS``."""
+        minutes, seconds = divmod(max(0, self.remaining_seconds), 60)
+        return f"{minutes:02d}:{seconds:02d}"
+
+    @property
+    def elapsed_time(self) -> str:
+        """Elapsed time formatted as ``MM:SS``."""
+        minutes, seconds = divmod(max(0, self.elapsed_seconds), 60)
+        return f"{minutes:02d}:{seconds:02d}"
+
+    @property
     def is_idle(self) -> bool:
         """Whether the timer is neither running nor paused."""
         return not self.is_running and not self.is_paused
@@ -88,6 +100,11 @@ class PomodoroTimer:
     def is_break(self) -> bool:
         """Whether the current session is a break session."""
         return self.session_type is not SessionType.WORK
+
+    @property
+    def is_work(self) -> bool:
+        """Whether the current session is a work session."""
+        return self.session_type is SessionType.WORK
 
     @property
     def status(self) -> str:

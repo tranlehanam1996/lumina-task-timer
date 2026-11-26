@@ -273,6 +273,7 @@ class TestPomodoroTimerStatusAndSkip(unittest.TestCase):
         self.assertEqual(t.status, "idle")
         self.assertTrue(t.is_idle)
         self.assertFalse(t.is_break)
+        self.assertTrue(t.is_work)
         t.start()
         self.assertEqual(t.status, "running")
         self.assertFalse(t.is_idle)
@@ -305,6 +306,26 @@ class TestPomodoroTimerStatusAndSkip(unittest.TestCase):
         t.skip()
         self.assertEqual(t.session_type, SessionType.SHORT_BREAK)
         self.assertTrue(t.is_idle)
+
+
+class TestPomodoroTimerHelpers(unittest.TestCase):
+    def test_time_and_session_helpers(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        self.assertTrue(t.is_work)
+        self.assertFalse(t.is_break)
+        self.assertEqual(t.remaining_time, "01:00")
+        self.assertEqual(t.elapsed_time, "00:00")
+        t.start()
+        for _ in range(15):
+            t.tick()
+        self.assertTrue(t.is_work)
+        self.assertEqual(t.remaining_time, "00:45")
+        self.assertEqual(t.elapsed_time, "00:15")
+        t.skip()
+        self.assertFalse(t.is_work)
+        self.assertTrue(t.is_break)
+        self.assertEqual(t.remaining_time, "01:00")
+        self.assertEqual(t.elapsed_time, "00:00")
 
 
 if __name__ == "__main__":
