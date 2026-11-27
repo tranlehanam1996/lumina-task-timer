@@ -107,6 +107,16 @@ class PomodoroTimer:
         return self.session_type is SessionType.WORK
 
     @property
+    def is_short_break(self) -> bool:
+        """Whether the current session is a short break session."""
+        return self.session_type is SessionType.SHORT_BREAK
+
+    @property
+    def is_long_break(self) -> bool:
+        """Whether the current session is a long break session."""
+        return self.session_type is SessionType.LONG_BREAK
+
+    @property
     def status(self) -> str:
         """A concise runtime status string: idle, running, or paused."""
         if self.is_running:

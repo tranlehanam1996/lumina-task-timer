@@ -328,5 +328,31 @@ class TestPomodoroTimerHelpers(unittest.TestCase):
         self.assertEqual(t.elapsed_time, "00:00")
 
 
+class TestPomodoroTimerSessionTypeHelpers(unittest.TestCase):
+    def test_short_and_long_break_helpers(self):
+        t = PomodoroTimer(
+            TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2, sessions_until_long_break=2)
+        )
+        self.assertTrue(t.is_work)
+        self.assertFalse(t.is_short_break)
+        self.assertFalse(t.is_long_break)
+
+        t.skip()
+        self.assertTrue(t.is_short_break)
+        self.assertFalse(t.is_long_break)
+        self.assertTrue(t.is_break)
+
+        t.skip()
+        self.assertTrue(t.is_work)
+        self.assertFalse(t.is_short_break)
+        self.assertFalse(t.is_long_break)
+
+        t.completed_work_sessions = 1
+        t.skip()
+        self.assertTrue(t.is_long_break)
+        self.assertFalse(t.is_short_break)
+        self.assertTrue(t.is_break)
+
+
 if __name__ == "__main__":
     unittest.main()

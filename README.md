@@ -44,4 +44,4 @@ The Pomodoro state machine lives in `timer_logic.py` and has no GUI dependencies
 python -m unittest discover -s tests
 ```
 
-`PomodoroTimer` exposes `start`, `pause`, `reset`, `tick`, `advance`, `skip`, `progress`, `elapsed_seconds`, `elapsed_time`, `remaining_time`, `status`, `is_idle`, `is_work`, `is_break`, `next_session_type`, `copy`/`clone`, and serialization helpers (`to_dict`/`from_dict`, `to_json`/`from_json`).
+`PomodoroTimer` exposes `start`, `pause`, `reset`, `tick`, `advance`, `skip`, `progress`, `elapsed_seconds`, `elapsed_time`, `remaining_time`, `status`, `is_idle`, `is_work`, `is_break`, `is_short_break`, `is_long_break`, `next_session_type`, `copy`/`clone`, and serialization helpers (`to_dict`/`from_dict`, `to_json`/`from_json`).
