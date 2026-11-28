@@ -327,6 +327,13 @@ class TestPomodoroTimerHelpers(unittest.TestCase):
         self.assertEqual(t.remaining_time, "01:00")
         self.assertEqual(t.elapsed_time, "00:00")
 
+    def test_remaining_time_clamps_restored_remaining(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.remaining_seconds = 999
+        self.assertEqual(t.remaining_time, "01:00")
+        t.remaining_seconds = -5
+        self.assertEqual(t.remaining_time, "00:00")
+
 
 class TestPomodoroTimerSessionTypeHelpers(unittest.TestCase):
     def test_short_and_long_break_helpers(self):
@@ -352,6 +359,36 @@ class TestPomodoroTimerSessionTypeHelpers(unittest.TestCase):
         self.assertTrue(t.is_long_break)
         self.assertFalse(t.is_short_break)
         self.assertTrue(t.is_break)
+
+
+class TestPomodoroTimerResetSession(unittest.TestCase):
+    def test_reset_session_preserves_type_and_history(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        for _ in range(30):
+            t.tick()
+        t.skip()
+        completed_before = t.completed_work_sessions
+        session_before = t.session_type
+        t.start()
+        for _ in range(10):
+            t.tick()
+        t.reset_session()
+        self.assertEqual(t.session_type, session_before)
+        self.assertEqual(t.completed_work_sessions, completed_before)
+        self.assertEqual(t.remaining_seconds, t.total_seconds)
+        self.assertFalse(t.is_running)
+        self.assertFalse(t.is_paused)
+
+    def test_restart_resets_and_starts(self):
+        t = PomodoroTimer(TimerConfig(work_minutes=1, short_break_minutes=1, long_break_minutes=2))
+        t.start()
+        for _ in range(30):
+            t.tick()
+        t.restart()
+        self.assertTrue(t.is_running)
+        self.assertFalse(t.is_paused)
+        self.assertEqual(t.remaining_seconds, t.total_seconds)
 
 
 if __name__ == "__main__":

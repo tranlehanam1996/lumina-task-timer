@@ -82,7 +82,13 @@ class PomodoroTimer:
     @property
     def remaining_time(self) -> str:
         """Remaining time formatted as ``MM:SS``."""
-        minutes, seconds = divmod(max(0, self.remaining_seconds), 60)
+        total = self.total_seconds
+        remaining = self.remaining_seconds
+        if remaining < 0:
+            remaining = 0
+        elif remaining > total:
+            remaining = total
+        minutes, seconds = divmod(remaining, 60)
         return f"{minutes:02d}:{seconds:02d}"
 
     @property
@@ -176,6 +182,21 @@ class PomodoroTimer:
         self.session_type = SessionType.WORK
         self.remaining_seconds = self.config.work_minutes * 60
         self.completed_work_sessions = 0
+
+    def reset_session(self) -> None:
+        """Reset only the current session to its full duration.
+
+        Unlike :meth:`reset`, this preserves the current session type and the
+        number of completed work sessions. The timer is stopped.
+        """
+        self.is_running = False
+        self.is_paused = False
+        self.remaining_seconds = self.total_seconds
+
+    def restart(self) -> None:
+        """Reset the current session and start it immediately."""
+        self.reset_session()
+        self.start()
 
     def tick(self) -> bool:
         """Advance the timer by one second.
